@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 fn delete_nth(lst: &[u8], n: usize) -> Vec<u8> {
     let mut array: Vec<u8> = Vec::new();
     for val in lst {
@@ -34,9 +36,27 @@ fn list_squared(m: u64, n: u64) -> Vec<(u64, u64)> {
     results
 }
 
+fn order(sentence: &str) -> String {
+    if sentence.is_empty() {
+        return String::from("");
+    }
+    let extract_number = |x: &str| x.chars().find(|y| y.is_digit(10));
+    sentence
+        .split(" ")
+        .map(|x| (x, extract_number(x)))
+        .sorted_by_key(|x| x.1)
+        .map(|x| x.0)
+        .join(" ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn returns_expected() {
+        assert_eq!(order("is2 Thi1s T4est 3a"), "Thi1s is2 3a T4est");
+        assert_eq!(order(""), "");
+    }
 
     #[test]
     fn sample_tests_delete_nth() {
