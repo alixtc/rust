@@ -9,6 +9,31 @@ fn delete_nth(lst: &[u8], n: usize) -> Vec<u8> {
     array
 }
 
+fn find_uniq(arr: &[f64]) -> f64 {
+    let first = &arr[0];
+    let filtered = arr.iter().filter(|x| x != &first).collect::<Vec<_>>();
+    if filtered.len() == 1 {
+        return filtered[0].to_owned();
+    } else {
+        return first.to_owned();
+    }
+}
+
+fn list_squared(m: u64, n: u64) -> Vec<(u64, u64)> {
+    let int_sqrt = |x: u64| (x as f64).sqrt() as u64;
+    let get_divisors = |x: u64| (1..x + 1).filter(move |y| (x % y) == 0);
+
+    let mut results = Vec::new();
+    for i in m..n {
+        let divisors = get_divisors(i).collect::<Vec<_>>();
+        let sq_div_sum = divisors.iter().map(|x| x * x).sum();
+        if int_sqrt(sq_div_sum) * int_sqrt(sq_div_sum) == sq_div_sum {
+            results.push((i, sq_div_sum));
+        }
+    }
+    results
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -24,5 +49,24 @@ mod tests {
             delete_nth(&[1, 2, 3, 1, 2, 1, 2, 3], 2),
             vec![1, 2, 3, 1, 2, 3]
         )
+    }
+
+    #[test]
+    fn examples() {
+        assert_eq!(find_uniq(&[0.0, 1.0, 0.0]), 1.0);
+        assert_eq!(find_uniq(&[1.0, 1.0, 1.0, 2.0, 1.0, 1.0]), 2.0);
+        assert_eq!(find_uniq(&[3.0, 10.0, 3.0, 3.0, 3.0]), 10.0);
+    }
+
+    fn testing(m: u64, n: u64, exp: Vec<(u64, u64)>) -> () {
+        assert_eq!(list_squared(m, n), exp)
+    }
+
+    #[test]
+    fn basics_list_squared() {
+        testing(1, 250, vec![(1, 1), (42, 2500), (246, 84100)]);
+        testing(1, 250, vec![(1, 1), (42, 2500), (246, 84100)]);
+        testing(42, 250, vec![(42, 2500), (246, 84100)]);
+        testing(300, 600, vec![]);
     }
 }
