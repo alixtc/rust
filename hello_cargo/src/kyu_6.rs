@@ -172,9 +172,52 @@ fn get_pins(observed: &str) -> Vec<String> {
     matches
 }
 
+fn meeting(s: &str) -> String {
+    s.split(";")
+        .map(|x| {
+            x.to_uppercase()
+                .split(":")
+                .collect::<Vec<_>>()
+                .iter()
+                .rev()
+                .join(", ")
+        })
+        .sorted()
+        .map(|u| format!("({u})"))
+        .join("")
+}
+
+fn perimeter(n: u64) -> u64 {
+    fn fib(term: u64, val: u64, prev: u64) -> u64 {
+        if term == 0 {
+            return prev;
+        }
+        return fib(term - 1, val + prev, val);
+    }
+    4 * (fib(n + 3, 1, 0) - 1)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn basics_perimeter() {
+        assert_eq!(perimeter(5), 80);
+        assert_eq!(perimeter(7), 216);
+        assert_eq!(perimeter(20), 114624);
+        assert_eq!(perimeter(30), 14098308);
+    }
+
+    #[test]
+    fn basic_tests() {
+        assert_eq!(meeting("Alexis:Wahl;John:Bell;Victoria:Schwarz;Abba:Dorny;Grace:Meta;Ann:Arno;Madison:STAN;Alex:Cornwell;Lewis:Kern;Megan:Stan;Alex:Korn"),
+               "(ARNO, ANN)(BELL, JOHN)(CORNWELL, ALEX)(DORNY, ABBA)(KERN, LEWIS)(KORN, ALEX)(META, GRACE)(SCHWARZ, VICTORIA)(STAN, MADISON)(STAN, MEGAN)(WAHL, ALEXIS)");
+        assert_eq!(meeting("John:Gates;Michael:Wahl;Megan:Bell;Paul:Dorries;James:Dorny;Lewis:Steve;Alex:Meta;Elizabeth:Russel;Anna:Korn;Ann:Kern;Amber:Cornwell"),
+               "(BELL, MEGAN)(CORNWELL, AMBER)(DORNY, JAMES)(DORRIES, PAUL)(GATES, JOHN)(KERN, ANN)(KORN, ANNA)(META, ALEX)(RUSSEL, ELIZABETH)(STEVE, LEWIS)(WAHL, MICHAEL)");
+        assert_eq!(meeting("Alex:Arno;Alissa:Cornwell;Sarah:Bell;Andrew:Dorries;Ann:Kern;Haley:Arno;Paul:Dorny;Madison:Kern"),
+            "(ARNO, ALEX)(ARNO, HALEY)(BELL, SARAH)(CORNWELL, ALISSA)(DORNY, PAUL)(DORRIES, ANDREW)(KERN, ANN)(KERN, MADISON)");
+    }
 
     #[test]
     fn test_for_pins() {
