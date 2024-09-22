@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use itertools::Itertools;
 
 fn delete_nth(lst: &[u8], n: usize) -> Vec<u8> {
@@ -49,9 +51,103 @@ fn order(sentence: &str) -> String {
         .join(" ")
 }
 
+fn encrypt_this(text: &str) -> String {
+    fn get_ascii(x: &str) -> String {
+        x.chars().map(|x: char| format!("{}", x as u8)).join("")
+    }
+
+    fn process_word(word: &str) -> String {
+        if word.len() == 1 {
+            return get_ascii(word);
+        } else if word.len() == 2 {
+            return get_ascii(&word[..1]) + &word[1..];
+        } else {
+            return get_ascii(&word[..1]) + &invert_second_and_last(&word[1..]);
+        }
+    }
+
+    fn invert_second_and_last(text: &str) -> String {
+        let second = text.chars().take(1).join("");
+        let last = text.chars().last().unwrap().to_string();
+        return last + &text[1..(text.len() - 1)] + &second;
+    }
+    text.split(" ").map(process_word).join(" ")
+}
+
+fn good_vs_evil(good: &str, evil: &str) -> String {
+    let good_multipliers = vec![1, 2, 3, 3, 4, 10];
+    let evil_multipliers = vec![1, 2, 2, 2, 3, 5, 10];
+
+    fn calculate_power(army: &str, multiplier: Vec<u32>) -> u32 {
+        army.split_ascii_whitespace()
+            .map(|x| x.parse::<u32>().unwrap())
+            .zip(multiplier)
+            .map(|x| x.0 * x.1)
+            .sum()
+    }
+    let good_power = calculate_power(good, good_multipliers);
+    let evil_power = calculate_power(evil, evil_multipliers);
+
+    match good_power.cmp(&evil_power) {
+        Ordering::Greater => "Battle Result: Good triumphs over Evil".to_string(),
+        Ordering::Less => "Battle Result: Evil eradicates all trace of Good".to_string(),
+        Ordering::Equal => "Battle Result: No victor on this battle field".to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn do_test(good: &str, evil: &str, expected: &str) {
+        let actual = good_vs_evil(good, evil);
+        assert_eq!(
+        actual, expected,
+        "\n  Good: \"{good}\n  Evil: \"{evil}\"\nYour answer (left) is not the expected answer (right).",
+    );
+    }
+
+    #[test]
+    fn test_good_wins() {
+        do_test(
+            "1 0 1 0 0 0",
+            "1 0 0 0 0 0 0",
+            "Battle Result: Good triumphs over Evil",
+        );
+        do_test(
+            "0 0 0 0 0 10",
+            "0 0 0 0 0 0 0",
+            "Battle Result: Good triumphs over Evil",
+        );
+    }
+    #[test]
+    fn test_basic() {
+        assert_eq!(encrypt_this(&"A"), "65".to_string());
+        assert_eq!(encrypt_this(&"in"), "105n".to_string());
+        assert_eq!(encrypt_this(&"an"), "97n".to_string());
+        assert_eq!(encrypt_this(&"Hello"), "72olle".to_string());
+        assert_eq!(encrypt_this(&"good"), "103doo".to_string());
+        assert_eq!(
+            encrypt_this(&"A wise old owl lived in an oak"),
+            "65 119esi 111dl 111lw 108dvei 105n 97n 111ka".to_string()
+        );
+        assert_eq!(
+            encrypt_this(&"The more he saw the less he spoke"),
+            "84eh 109ero 104e 115wa 116eh 108sse 104e 115eokp".to_string()
+        );
+        assert_eq!(
+            encrypt_this(&"The less he spoke the more he heard"),
+            "84eh 108sse 104e 115eokp 116eh 109ero 104e 104dare".to_string()
+        );
+        assert_eq!(
+            encrypt_this(&"Why can we not all be like that wise old bird"),
+            "87yh 99na 119e 110to 97ll 98e 108eki 116tah 119esi 111dl 98dri".to_string()
+        );
+        assert_eq!(
+            encrypt_this(&"Thank you Piotr for all your help"),
+            "84kanh 121uo 80roti 102ro 97ll 121ruo 104ple".to_string()
+        );
+    }
     #[test]
     fn returns_expected() {
         assert_eq!(order("is2 Thi1s T4est 3a"), "Thi1s is2 3a T4est");
