@@ -197,9 +197,112 @@ fn perimeter(n: u64) -> u64 {
     4 * (fib(n + 3, 1, 0) - 1)
 }
 
+fn spinning_rings(inner_max: u64, outer_max: u64) -> u64 {
+    println!("{}, {}, {}", inner_max, outer_max, inner_max - outer_max);
+    return brute_force_spinnig(inner_max, outer_max);
+}
+
+fn brute_force_spinnig(inner_max: u64, outer_max: u64) -> u64 {
+    let mut inner_ring = std::iter::once(0).chain((1..=inner_max).rev()).cycle();
+    let mut outer_ring = (0..=outer_max).cycle();
+    make_one_turn(&mut inner_ring, &mut outer_ring);
+    let (mut inner_position, mut outer_position) = make_one_turn(&mut inner_ring, &mut outer_ring);
+    let mut increments: u64 = 1;
+    println!("Inner: {inner_position}, Outer: {outer_position}, Increments: {increments}");
+    while inner_position != outer_position {
+        (inner_position, outer_position) = make_one_turn(&mut inner_ring, &mut outer_ring);
+
+        increments += 1;
+        println!("Inner: {inner_position}, Outer: {outer_position}, Increments: {increments}");
+    }
+    return increments;
+}
+
+fn make_one_turn(
+    inner_ring: &mut std::iter::Cycle<
+        std::iter::Chain<std::iter::Once<u64>, std::iter::Rev<std::ops::RangeInclusive<u64>>>,
+    >,
+    outer_ring: &mut std::iter::Cycle<std::ops::RangeInclusive<u64>>,
+) -> (u64, u64) {
+    let inner_next = inner_ring.next();
+    let outer_next = outer_ring.next();
+    match (inner_next, outer_next) {
+        (Some(u), Some(v)) => (u, v),
+        _ => panic!(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sample_spinning_rings() {
+        // assert_eq!(spinning_rings(2, 3), 5);
+        // assert_eq!(spinning_rings(5, 5), 3);
+        // assert_eq!(spinning_rings(2, 10), 13);
+        // assert_eq!(spinning_rings(10, 2), 10);
+        // assert_eq!(spinning_rings(7, 9), 4);
+        assert_eq!(spinning_rings(20, 10), 16);
+        assert_eq!(spinning_rings(40, 20), 31);
+        assert_eq!(spinning_rings(80, 40), 61);
+
+        assert_eq!(spinning_rings(200, 100), 151);
+        assert_eq!(spinning_rings(300, 200), 251);
+        assert_eq!(spinning_rings(400, 300), 351);
+        assert_eq!(spinning_rings(500, 400), 451);
+        assert_eq!(spinning_rings(600, 500), 551);
+        assert_eq!(spinning_rings(700, 600), 651);
+
+        assert_eq!(spinning_rings(201, 101), 101);
+        assert_eq!(spinning_rings(301, 201), 151);
+        assert_eq!(spinning_rings(401, 301), 201);
+        assert_eq!(spinning_rings(501, 401), 251);
+        assert_eq!(spinning_rings(601, 501), 301);
+        assert_eq!(spinning_rings(701, 601), 351);
+
+        assert_eq!(spinning_rings(400, 200), 301);
+        assert_eq!(spinning_rings(800, 400), 601);
+
+        assert_eq!(spinning_rings(20, 10), 16);
+        assert_eq!(spinning_rings(21, 10), 22);
+        assert_eq!(spinning_rings(22, 10), 17);
+        assert_eq!(spinning_rings(23, 10), 23);
+        assert_eq!(spinning_rings(24, 10), 18);
+        assert_eq!(spinning_rings(25, 10), 24);
+        assert_eq!(spinning_rings(26, 10), 19);
+
+        assert_eq!(spinning_rings(20, 10), 16);
+        assert_eq!(spinning_rings(21, 11), 11);
+        assert_eq!(spinning_rings(22, 12), 18);
+        assert_eq!(spinning_rings(23, 13), 12);
+        assert_eq!(spinning_rings(24, 14), 20);
+        assert_eq!(spinning_rings(25, 15), 13);
+        assert_eq!(spinning_rings(26, 16), 22);
+
+        assert_eq!(spinning_rings(20, 1), 41);
+        assert_eq!(spinning_rings(20, 2), 21);
+        assert_eq!(spinning_rings(20, 3), 39);
+        assert_eq!(spinning_rings(20, 4), 18);
+        assert_eq!(spinning_rings(20, 5), 39);
+        assert_eq!(spinning_rings(20, 6), 21);
+        assert_eq!(spinning_rings(20, 7), 37);
+        assert_eq!(spinning_rings(20, 8), 15);
+        assert_eq!(spinning_rings(20, 9), 36);
+        assert_eq!(spinning_rings(20, 10), 16);
+        assert_eq!(spinning_rings(20, 11), 33);
+        assert_eq!(spinning_rings(20, 12), 17);
+        assert_eq!(spinning_rings(20, 13), 35);
+        assert_eq!(spinning_rings(20, 14), 18);
+        assert_eq!(spinning_rings(20, 15), 29);
+        assert_eq!(spinning_rings(20, 16), 19);
+        assert_eq!(spinning_rings(20, 17), 30);
+        assert_eq!(spinning_rings(20, 18), 20);
+        assert_eq!(spinning_rings(20, 19), 31);
+        assert_eq!(spinning_rings(20, 20), 21);
+
+        // assert_eq!(spinning_rings(2_u64.pow(24), 3_u64.pow(15)), 23951671);
+    }
 
     #[test]
     fn basics_perimeter() {
