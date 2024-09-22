@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use itertools::Itertools;
+use itertools::{enumerate, Itertools};
 
 fn delete_nth(lst: &[u8], n: usize) -> Vec<u8> {
     let mut array: Vec<u8> = Vec::new();
@@ -95,10 +95,50 @@ fn good_vs_evil(good: &str, evil: &str) -> String {
     }
 }
 
+fn make_readable(seconds: u32) -> String {
+    let minutes = &seconds % 3600 / 60;
+    let remaining = &seconds % 60;
+    format!("{:0>2}:{:0>2}:{:0>2}", &seconds / 3600, minutes, remaining)
+}
+fn ips_between(start: &str, end: &str) -> u32 {
+    fn parse_ip(ip: &str) -> Vec<i64> {
+        ip.split(".")
+            .map(|num| num.parse::<i64>().unwrap())
+            .collect()
+    }
+    let ip_differences = &parse_ip(end)
+        .iter()
+        .zip(parse_ip(start).iter())
+        .map(|x| x.0 - x.1)
+        .rev()
+        .collect::<Vec<_>>();
+
+    let mut result: i64 = 0;
+    for (idx, diff) in enumerate(ip_differences) {
+        let modifier = i64::pow(256, idx as u32) * diff;
+        result += modifier;
+    }
+    result as u32
+}
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    #[test]
+    fn test_ip_adress() {
+        assert_eq!(ips_between("10.0.0.0", "10.0.0.50"), 50);
+        assert_eq!(ips_between("20.0.0.10", "20.0.1.0"), 246);
+    }
+    #[test]
+    fn fixed_tests() {
+        assert_eq!(make_readable(0), "00:00:00");
+        assert_eq!(make_readable(59), "00:00:59");
+        assert_eq!(make_readable(60), "00:01:00");
+        assert_eq!(make_readable(3599), "00:59:59");
+        assert_eq!(make_readable(3600), "01:00:00");
+        assert_eq!(make_readable(86399), "23:59:59");
+        assert_eq!(make_readable(86400), "24:00:00");
+        assert_eq!(make_readable(359999), "99:59:59");
+    }
     fn do_test(good: &str, evil: &str, expected: &str) {
         let actual = good_vs_evil(good, evil);
         assert_eq!(
