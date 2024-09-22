@@ -120,9 +120,63 @@ fn ips_between(start: &str, end: &str) -> u32 {
     }
     result as u32
 }
+
+fn min_umbrellas(weather: &[&str]) -> usize {
+    let mut home_stock = 0;
+    let mut work_stock = 0;
+    for (time, &weather) in weather.iter().enumerate() {
+        match weather {
+            "rainy" | "thunderstorms" => {
+                if time % 2 == 0 {
+                    work_stock += 1;
+                    if home_stock > 0 {
+                        home_stock -= 1;
+                    }
+                } else {
+                    home_stock += 1;
+                    if work_stock > 0 {
+                        work_stock -= 1;
+                    }
+                }
+            }
+            _ => (),
+        };
+    }
+    home_stock + work_stock
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sample_tests_umbrella() {
+        assert_eq!(min_umbrellas(&["cloudy"]), 0);
+        assert_eq!(min_umbrellas(&["rainy", "rainy", "rainy", "rainy"]), 1);
+    }
+    #[test]
+    fn sample_tests_umbrella_difficult() {
+        assert_eq!(
+            min_umbrellas(&["rainy", "rainy", "rainy", "rainy", "thunderstorms", "rainy"]),
+            1
+        );
+    }
+    #[test]
+    fn sample_tests_umbrella2() {
+        assert_eq!(
+            min_umbrellas(&["overcast", "rainy", "clear", "thunderstorms"]),
+            2
+        );
+        assert_eq!(
+            min_umbrellas(&["overcast", "overcast", "rainy", "clear", "thunderstorms"]),
+            2
+        );
+        assert_eq!(
+            min_umbrellas(&["rainy", "overcast", "rainy", "clear", "thunderstorms"]),
+            3
+        );
+    }
+
     #[test]
     fn test_ip_adress() {
         assert_eq!(ips_between("10.0.0.0", "10.0.0.50"), 50);
