@@ -145,9 +145,56 @@ fn min_umbrellas(weather: &[&str]) -> usize {
     home_stock + work_stock
 }
 
+fn get_pins(observed: &str) -> Vec<String> {
+    fn pin_matcher(x: char) -> Vec<String> {
+        let found = match x {
+            '0' => "08",
+            '1' => "124",
+            '2' => "1235",
+            '3' => "236",
+            '4' => "1457",
+            '5' => "24568",
+            '6' => "3569",
+            '7' => "478",
+            '8' => "57890",
+            '9' => "689",
+            _ => panic!(),
+        };
+        found.chars().map(String::from).collect()
+    }
+    let matches = observed
+        .chars()
+        .map(pin_matcher)
+        .multi_cartesian_product()
+        .map(|x| x.join(""))
+        .collect();
+
+    matches
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_for_pins() {
+        assert_eq!(
+            get_pins("8").iter().sorted().collect::<Vec<&String>>(),
+            vec!["0", "5", "7", "8", "9"]
+        );
+        assert_eq!(
+            get_pins("11").iter().sorted().collect::<Vec<&String>>(),
+            vec!["11", "12", "14", "21", "22", "24", "41", "42", "44"]
+        );
+        assert_eq!(
+            get_pins("369").iter().sorted().collect::<Vec<&String>>(),
+            vec![
+                "236", "238", "239", "256", "258", "259", "266", "268", "269", "296", "298", "299",
+                "336", "338", "339", "356", "358", "359", "366", "368", "369", "396", "398", "399",
+                "636", "638", "639", "656", "658", "659", "666", "668", "669", "696", "698", "699"
+            ]
+        );
+    }
 
     #[test]
     fn sample_tests_umbrella() {
