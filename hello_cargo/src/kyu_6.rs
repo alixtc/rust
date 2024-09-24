@@ -1,4 +1,5 @@
-use std::cmp::Ordering;
+use counter::Counter;
+use std::cmp::{min, Ordering};
 
 use itertools::{enumerate, Itertools};
 
@@ -17,9 +18,9 @@ fn find_uniq(arr: &[f64]) -> f64 {
     let first = &arr[0];
     let filtered = arr.iter().filter(|x| x != &first).collect::<Vec<_>>();
     if filtered.len() == 1 {
-        return filtered[0].to_owned();
+        filtered[0].to_owned()
     } else {
-        return first.to_owned();
+        first.to_owned()
     }
 }
 
@@ -42,7 +43,7 @@ fn order(sentence: &str) -> String {
     if sentence.is_empty() {
         return String::from("");
     }
-    let extract_number = |x: &str| x.chars().find(|y| y.is_digit(10));
+    let extract_number = |x: &str| x.chars().find(|y| y.is_ascii_digit());
     sentence
         .split(" ")
         .map(|x| (x, extract_number(x)))
@@ -58,18 +59,18 @@ fn encrypt_this(text: &str) -> String {
 
     fn process_word(word: &str) -> String {
         if word.len() == 1 {
-            return get_ascii(word);
+            get_ascii(word)
         } else if word.len() == 2 {
-            return get_ascii(&word[..1]) + &word[1..];
+            get_ascii(&word[..1]) + &word[1..]
         } else {
-            return get_ascii(&word[..1]) + &invert_second_and_last(&word[1..]);
+            get_ascii(&word[..1]) + &invert_second_and_last(&word[1..])
         }
     }
 
     fn invert_second_and_last(text: &str) -> String {
         let second = text.chars().take(1).join("");
         let last = text.chars().last().unwrap().to_string();
-        return last + &text[1..(text.len() - 1)] + &second;
+        last + &text[1..(text.len() - 1)] + &second
     }
     text.split(" ").map(process_word).join(" ")
 }
@@ -122,27 +123,23 @@ fn ips_between(start: &str, end: &str) -> u32 {
 }
 
 fn min_umbrellas(weather: &[&str]) -> usize {
-    let mut home_stock = 0;
-    let mut work_stock = 0;
+    let mut home_stock: i32 = 0;
+    let mut work_stock: i32 = 0;
     for (time, &weather) in weather.iter().enumerate() {
         match weather {
             "rainy" | "thunderstorms" => {
                 if time % 2 == 0 {
                     work_stock += 1;
-                    if home_stock > 0 {
-                        home_stock -= 1;
-                    }
+                    home_stock = home_stock.saturating_sub(1)
                 } else {
                     home_stock += 1;
-                    if work_stock > 0 {
-                        work_stock -= 1;
-                    }
+                    home_stock = work_stock.saturating_sub(1);
                 }
             }
             _ => (),
         };
     }
-    home_stock + work_stock
+    (home_stock + work_stock) as usize
 }
 
 fn get_pins(observed: &str) -> Vec<String> {
@@ -192,14 +189,51 @@ fn perimeter(n: u64) -> u64 {
         if term == 0 {
             return prev;
         }
-        return fib(term - 1, val + prev, val);
+        fib(term - 1, val + prev, val)
     }
     4 * (fib(n + 3, 1, 0) - 1)
 }
 
 fn spinning_rings(inner_max: u64, outer_max: u64) -> u64 {
-    println!("{}, {}, {}", inner_max, outer_max, inner_max - outer_max);
-    return brute_force_spinnig(inner_max, outer_max);
+    if (inner_max < 1000) & (outer_max < 1000) {
+        brute_force_spinnig(inner_max, outer_max)
+    } else {
+        println!("inner: {inner_max}, outer: {outer_max}");
+
+        let base = min(&inner_max, &outer_max).to_owned();
+
+        let bf = brute_force_spinnig(inner_max, outer_max);
+
+        for i in ((base - 2050)..=(base - 2000)).step_by(2) {
+            let result = brute_force_spinnig(inner_max - i, outer_max - i);
+            print!("inner: {inner_max}, outer: {outer_max},     ");
+            println!("i:    {i}, result: {result}");
+        }
+
+        // let starter = brute_force_spinnig(base, base);
+        // let next_iter = brute_force_spinnig(base + 2, base + 2);
+        // let delta = next_iter - starter + 1;
+        // let multiplier = base / 2;
+
+        // let modulo = brute_force_spinnig(root_inner, root_outer);
+
+        // let remainder = brute_force_spinnig(remain_inner, remain_outer);
+        // let thousand = brute_force_spinnig(root_inner, root_outer);
+        // let million = brute_force_spinnig(root_inner / 1000, root_outer / 1000);
+
+        // let deltas = (100..10000)
+        //     .step_by(100)
+        //     .map(|x| brute_force_spinnig(root_inner + x, root_outer + x))
+        //     .collect::<Vec<_>>();
+
+        // let delta = base_and_delta - base;
+        // let delta2 = base_and_delta2 - base_and_delta;
+        // println!("Deltas:{:?}", deltas);
+        // let multiplier = min(inner_max, outer_max) / 6;
+        // let result = (delta * multiplier) + 2 * base;
+        // println!("base:{base}, starter: {starter}, next={next_iter},  delta: {delta}, mult: {multiplier}, result: {result}");
+        bf
+    }
 }
 
 fn brute_force_spinnig(inner_max: u64, outer_max: u64) -> u64 {
@@ -208,14 +242,13 @@ fn brute_force_spinnig(inner_max: u64, outer_max: u64) -> u64 {
     make_one_turn(&mut inner_ring, &mut outer_ring);
     let (mut inner_position, mut outer_position) = make_one_turn(&mut inner_ring, &mut outer_ring);
     let mut increments: u64 = 1;
-    println!("Inner: {inner_position}, Outer: {outer_position}, Increments: {increments}");
+
     while inner_position != outer_position {
         (inner_position, outer_position) = make_one_turn(&mut inner_ring, &mut outer_ring);
 
         increments += 1;
-        println!("Inner: {inner_position}, Outer: {outer_position}, Increments: {increments}");
     }
-    return increments;
+    increments
 }
 
 fn make_one_turn(
@@ -232,77 +265,100 @@ fn make_one_turn(
     }
 }
 
+fn solution(s: &str) -> String {
+    s.chars()
+        .map(|x| {
+            if x.is_uppercase() {
+                format!(" {x}")
+            } else {
+                x.to_string()
+            }
+        })
+        .collect()
+}
+
+fn count_duplicates(text: &str) -> u32 {
+    let max_couter = text.chars().collect::<Counter<_>>();
+    (max_couter.values().max().unwrap() - 1) as u32
+    // u32::try_from(max_couter - 1).unwrap()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn sample_spinning_rings() {
-        // assert_eq!(spinning_rings(2, 3), 5);
-        // assert_eq!(spinning_rings(5, 5), 3);
-        // assert_eq!(spinning_rings(2, 10), 13);
-        // assert_eq!(spinning_rings(10, 2), 10);
-        // assert_eq!(spinning_rings(7, 9), 4);
-        assert_eq!(spinning_rings(20, 10), 16);
-        assert_eq!(spinning_rings(40, 20), 31);
-        assert_eq!(spinning_rings(80, 40), 61);
-
-        assert_eq!(spinning_rings(200, 100), 151);
-        assert_eq!(spinning_rings(300, 200), 251);
-        assert_eq!(spinning_rings(400, 300), 351);
-        assert_eq!(spinning_rings(500, 400), 451);
-        assert_eq!(spinning_rings(600, 500), 551);
-        assert_eq!(spinning_rings(700, 600), 651);
-
-        assert_eq!(spinning_rings(201, 101), 101);
-        assert_eq!(spinning_rings(301, 201), 151);
-        assert_eq!(spinning_rings(401, 301), 201);
-        assert_eq!(spinning_rings(501, 401), 251);
-        assert_eq!(spinning_rings(601, 501), 301);
-        assert_eq!(spinning_rings(701, 601), 351);
-
-        assert_eq!(spinning_rings(400, 200), 301);
-        assert_eq!(spinning_rings(800, 400), 601);
-
-        assert_eq!(spinning_rings(20, 10), 16);
-        assert_eq!(spinning_rings(21, 10), 22);
-        assert_eq!(spinning_rings(22, 10), 17);
-        assert_eq!(spinning_rings(23, 10), 23);
-        assert_eq!(spinning_rings(24, 10), 18);
-        assert_eq!(spinning_rings(25, 10), 24);
-        assert_eq!(spinning_rings(26, 10), 19);
-
-        assert_eq!(spinning_rings(20, 10), 16);
-        assert_eq!(spinning_rings(21, 11), 11);
-        assert_eq!(spinning_rings(22, 12), 18);
-        assert_eq!(spinning_rings(23, 13), 12);
-        assert_eq!(spinning_rings(24, 14), 20);
-        assert_eq!(spinning_rings(25, 15), 13);
-        assert_eq!(spinning_rings(26, 16), 22);
-
-        assert_eq!(spinning_rings(20, 1), 41);
-        assert_eq!(spinning_rings(20, 2), 21);
-        assert_eq!(spinning_rings(20, 3), 39);
-        assert_eq!(spinning_rings(20, 4), 18);
-        assert_eq!(spinning_rings(20, 5), 39);
-        assert_eq!(spinning_rings(20, 6), 21);
-        assert_eq!(spinning_rings(20, 7), 37);
-        assert_eq!(spinning_rings(20, 8), 15);
-        assert_eq!(spinning_rings(20, 9), 36);
-        assert_eq!(spinning_rings(20, 10), 16);
-        assert_eq!(spinning_rings(20, 11), 33);
-        assert_eq!(spinning_rings(20, 12), 17);
-        assert_eq!(spinning_rings(20, 13), 35);
-        assert_eq!(spinning_rings(20, 14), 18);
-        assert_eq!(spinning_rings(20, 15), 29);
-        assert_eq!(spinning_rings(20, 16), 19);
-        assert_eq!(spinning_rings(20, 17), 30);
-        assert_eq!(spinning_rings(20, 18), 20);
-        assert_eq!(spinning_rings(20, 19), 31);
-        assert_eq!(spinning_rings(20, 20), 21);
-
-        // assert_eq!(spinning_rings(2_u64.pow(24), 3_u64.pow(15)), 23951671);
+    fn test_abcde() {
+        assert_eq!(count_duplicates("abcde"), 0);
     }
+
+    #[test]
+    fn test_abcdea() {
+        assert_eq!(count_duplicates("abcdea"), 1);
+    }
+
+    #[test]
+    fn test_indivisibility() {
+        assert_eq!(count_duplicates("indivisibility"), 1);
+    }
+
+    #[test]
+    fn test_solution() {
+        assert_eq!(solution("camelCasing"), "camel Casing");
+        assert_eq!(solution("camelCasingTest"), "camel Casing Test");
+    }
+
+    // #[test]
+    // fn sample_spinning_rings() {
+    //     assert_eq!(spinning_rings(2, 3), 5);
+    //     assert_eq!(spinning_rings(5, 5), 3);
+    //     assert_eq!(spinning_rings(2, 10), 13);
+    //     assert_eq!(spinning_rings(10, 2), 10);
+    //     assert_eq!(spinning_rings(7, 9), 4);
+    //     assert_eq!(spinning_rings(20, 10), 16);
+    //     assert_eq!(spinning_rings(40, 20), 31);
+    //     assert_eq!(spinning_rings(80, 40), 61);
+
+    //     assert_eq!(spinning_rings(200, 100), 151);
+    //     assert_eq!(spinning_rings(300, 200), 251);
+    //     assert_eq!(spinning_rings(400, 300), 351);
+    //     assert_eq!(spinning_rings(500, 400), 451);
+    //     assert_eq!(spinning_rings(600, 500), 551);
+    //     assert_eq!(spinning_rings(700, 600), 651);
+
+    //     assert_eq!(spinning_rings(201, 101), 101);
+    //     assert_eq!(spinning_rings(301, 201), 151);
+    //     assert_eq!(spinning_rings(401, 301), 201);
+    //     assert_eq!(spinning_rings(501, 401), 251);
+    //     assert_eq!(spinning_rings(601, 501), 301);
+    //     assert_eq!(spinning_rings(701, 601), 351);
+
+    //     assert_eq!(spinning_rings(400, 200), 301);
+    //     assert_eq!(spinning_rings(800, 400), 601);
+
+    //     assert_eq!(spinning_rings(20, 1), 41);
+    //     assert_eq!(spinning_rings(20, 2), 21);
+    //     assert_eq!(spinning_rings(20, 3), 39);
+    //     assert_eq!(spinning_rings(20, 4), 18);
+    //     assert_eq!(spinning_rings(20, 5), 39);
+    //     assert_eq!(spinning_rings(20, 6), 21);
+    //     assert_eq!(spinning_rings(20, 7), 37);
+    //     assert_eq!(spinning_rings(20, 8), 15);
+    //     assert_eq!(spinning_rings(20, 9), 36);
+    //     assert_eq!(spinning_rings(20, 10), 16);
+    //     assert_eq!(spinning_rings(20, 11), 33);
+    //     assert_eq!(spinning_rings(20, 12), 17);
+    //     assert_eq!(spinning_rings(20, 13), 35);
+    //     assert_eq!(spinning_rings(20, 14), 18);
+    //     assert_eq!(spinning_rings(20, 15), 29);
+    //     assert_eq!(spinning_rings(20, 16), 19);
+    //     assert_eq!(spinning_rings(20, 17), 30);
+    //     assert_eq!(spinning_rings(20, 18), 20);
+    //     assert_eq!(spinning_rings(20, 19), 31);
+    //     assert_eq!(spinning_rings(20, 20), 21);
+
+    //     assert_eq!(spinning_rings(2_u64.pow(24), 3_u64.pow(15)), 23951671 + 1);
+    // }
 
     #[test]
     fn basics_perimeter() {

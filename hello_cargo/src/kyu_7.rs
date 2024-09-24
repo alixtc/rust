@@ -7,9 +7,9 @@ fn sum_two_smallest_numbers(numbers: &[u32]) -> u32 {
 fn get_middle(data: &str) -> &str {
     let middle_point = data.len() / 2;
     if (data.len() % 2) != 0 {
-        return &data[middle_point..middle_point + 1];
+        &data[middle_point..middle_point + 1]
     } else {
-        return &data[middle_point - 1..middle_point + 1];
+        &data[middle_point - 1..middle_point + 1]
     }
 }
 fn hello(name: &str) -> String {

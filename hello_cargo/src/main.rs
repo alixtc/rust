@@ -35,7 +35,7 @@ impl Car<'_> {
                 self.remaining_gas -= 1;
                 println!(
                     "{} keeps driving with {} remaining gas liters in the tank",
-                    self.owner.name.to_string(),
+                    self.owner.name,
                     self.remaining_gas
                 );
             }
