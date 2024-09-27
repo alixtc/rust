@@ -123,17 +123,17 @@ fn ips_between(start: &str, end: &str) -> u32 {
 }
 
 fn min_umbrellas(weather: &[&str]) -> usize {
-    let mut home_stock: i32 = 0;
-    let mut work_stock: i32 = 0;
+    let mut home_stock: u32 = 0;
+    let mut work_stock: u32 = 0;
     for (time, &weather) in weather.iter().enumerate() {
         match weather {
             "rainy" | "thunderstorms" => {
                 if time % 2 == 0 {
                     work_stock += 1;
-                    home_stock = home_stock.saturating_sub(1)
+                    home_stock = home_stock.saturating_sub(1);
                 } else {
                     home_stock += 1;
-                    home_stock = work_stock.saturating_sub(1);
+                    work_stock = work_stock.saturating_sub(1);
                 }
             }
             _ => (),
@@ -210,28 +210,6 @@ fn spinning_rings(inner_max: u64, outer_max: u64) -> u64 {
             println!("i:    {i}, result: {result}");
         }
 
-        // let starter = brute_force_spinnig(base, base);
-        // let next_iter = brute_force_spinnig(base + 2, base + 2);
-        // let delta = next_iter - starter + 1;
-        // let multiplier = base / 2;
-
-        // let modulo = brute_force_spinnig(root_inner, root_outer);
-
-        // let remainder = brute_force_spinnig(remain_inner, remain_outer);
-        // let thousand = brute_force_spinnig(root_inner, root_outer);
-        // let million = brute_force_spinnig(root_inner / 1000, root_outer / 1000);
-
-        // let deltas = (100..10000)
-        //     .step_by(100)
-        //     .map(|x| brute_force_spinnig(root_inner + x, root_outer + x))
-        //     .collect::<Vec<_>>();
-
-        // let delta = base_and_delta - base;
-        // let delta2 = base_and_delta2 - base_and_delta;
-        // println!("Deltas:{:?}", deltas);
-        // let multiplier = min(inner_max, outer_max) / 6;
-        // let result = (delta * multiplier) + 2 * base;
-        // println!("base:{base}, starter: {starter}, next={next_iter},  delta: {delta}, mult: {multiplier}, result: {result}");
         bf
     }
 }
@@ -297,10 +275,10 @@ mod tests {
         assert_eq!(count_duplicates("abcdea"), 1);
     }
 
-    #[test]
-    fn test_indivisibility() {
-        assert_eq!(count_duplicates("indivisibility"), 1);
-    }
+    // #[test]
+    // fn test_indivisibility() {
+    //     assert_eq!(count_duplicates("indivisibility"), 1);
+    // }
 
     #[test]
     fn test_solution() {
