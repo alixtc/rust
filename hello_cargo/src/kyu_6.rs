@@ -1,269 +1,218 @@
-use counter::Counter;
-use std::cmp::{min, Ordering};
-
-use itertools::{enumerate, Itertools};
-
-fn delete_nth(lst: &[u8], n: usize) -> Vec<u8> {
-    let mut array: Vec<u8> = Vec::new();
-    for val in lst {
-        let number_of_elements = array.iter().filter(|x| x == &val).count();
-        if number_of_elements < n {
-            array.push(val.to_owned());
-        }
-    }
-    array
-}
-
-fn find_uniq(arr: &[f64]) -> f64 {
-    let first = &arr[0];
-    let filtered = arr.iter().filter(|x| x != &first).collect::<Vec<_>>();
-    if filtered.len() == 1 {
-        filtered[0].to_owned()
-    } else {
-        first.to_owned()
-    }
-}
-
-fn list_squared(m: u64, n: u64) -> Vec<(u64, u64)> {
-    let int_sqrt = |x: u64| (x as f64).sqrt() as u64;
-    let get_divisors = |x: u64| (1..x + 1).filter(move |y| (x % y) == 0);
-
-    let mut results = Vec::new();
-    for i in m..n {
-        let divisors = get_divisors(i).collect::<Vec<_>>();
-        let sq_div_sum = divisors.iter().map(|x| x * x).sum();
-        if int_sqrt(sq_div_sum) * int_sqrt(sq_div_sum) == sq_div_sum {
-            results.push((i, sq_div_sum));
-        }
-    }
-    results
-}
-
-fn order(sentence: &str) -> String {
-    if sentence.is_empty() {
-        return String::from("");
-    }
-    let extract_number = |x: &str| x.chars().find(|y| y.is_ascii_digit());
-    sentence
-        .split(" ")
-        .map(|x| (x, extract_number(x)))
-        .sorted_by_key(|x| x.1)
-        .map(|x| x.0)
-        .join(" ")
-}
-
-fn encrypt_this(text: &str) -> String {
-    fn get_ascii(x: &str) -> String {
-        x.chars().map(|x: char| format!("{}", x as u8)).join("")
-    }
-
-    fn process_word(word: &str) -> String {
-        if word.len() == 1 {
-            get_ascii(word)
-        } else if word.len() == 2 {
-            get_ascii(&word[..1]) + &word[1..]
-        } else {
-            get_ascii(&word[..1]) + &invert_second_and_last(&word[1..])
-        }
-    }
-
-    fn invert_second_and_last(text: &str) -> String {
-        let second = text.chars().take(1).join("");
-        let last = text.chars().last().unwrap().to_string();
-        last + &text[1..(text.len() - 1)] + &second
-    }
-    text.split(" ").map(process_word).join(" ")
-}
-
-fn good_vs_evil(good: &str, evil: &str) -> String {
-    let good_multipliers = vec![1, 2, 3, 3, 4, 10];
-    let evil_multipliers = vec![1, 2, 2, 2, 3, 5, 10];
-
-    fn calculate_power(army: &str, multiplier: Vec<u32>) -> u32 {
-        army.split_ascii_whitespace()
-            .map(|x| x.parse::<u32>().unwrap())
-            .zip(multiplier)
-            .map(|x| x.0 * x.1)
-            .sum()
-    }
-    let good_power = calculate_power(good, good_multipliers);
-    let evil_power = calculate_power(evil, evil_multipliers);
-
-    match good_power.cmp(&evil_power) {
-        Ordering::Greater => "Battle Result: Good triumphs over Evil".to_string(),
-        Ordering::Less => "Battle Result: Evil eradicates all trace of Good".to_string(),
-        Ordering::Equal => "Battle Result: No victor on this battle field".to_string(),
-    }
-}
-
-fn make_readable(seconds: u32) -> String {
-    let minutes = &seconds % 3600 / 60;
-    let remaining = &seconds % 60;
-    format!("{:0>2}:{:0>2}:{:0>2}", &seconds / 3600, minutes, remaining)
-}
-fn ips_between(start: &str, end: &str) -> u32 {
-    fn parse_ip(ip: &str) -> Vec<i64> {
-        ip.split(".")
-            .map(|num| num.parse::<i64>().unwrap())
-            .collect()
-    }
-    let ip_differences = &parse_ip(end)
-        .iter()
-        .zip(parse_ip(start).iter())
-        .map(|x| x.0 - x.1)
-        .rev()
-        .collect::<Vec<_>>();
-
-    let mut result: i64 = 0;
-    for (idx, diff) in enumerate(ip_differences) {
-        let modifier = i64::pow(256, idx as u32) * diff;
-        result += modifier;
-    }
-    result as u32
-}
-
-fn min_umbrellas(weather: &[&str]) -> usize {
-    let mut home_stock: u32 = 0;
-    let mut work_stock: u32 = 0;
-    for (time, &weather) in weather.iter().enumerate() {
-        match weather {
-            "rainy" | "thunderstorms" => {
-                if time % 2 == 0 {
-                    work_stock += 1;
-                    home_stock = home_stock.saturating_sub(1);
-                } else {
-                    home_stock += 1;
-                    work_stock = work_stock.saturating_sub(1);
-                }
-            }
-            _ => (),
-        };
-    }
-    (home_stock + work_stock) as usize
-}
-
-fn get_pins(observed: &str) -> Vec<String> {
-    fn pin_matcher(x: char) -> Vec<String> {
-        let found = match x {
-            '0' => "08",
-            '1' => "124",
-            '2' => "1235",
-            '3' => "236",
-            '4' => "1457",
-            '5' => "24568",
-            '6' => "3569",
-            '7' => "478",
-            '8' => "57890",
-            '9' => "689",
-            _ => panic!(),
-        };
-        found.chars().map(String::from).collect()
-    }
-    let matches = observed
-        .chars()
-        .map(pin_matcher)
-        .multi_cartesian_product()
-        .map(|x| x.join(""))
-        .collect();
-
-    matches
-}
-
-fn meeting(s: &str) -> String {
-    s.split(";")
-        .map(|x| {
-            x.to_uppercase()
-                .split(":")
-                .collect::<Vec<_>>()
-                .iter()
-                .rev()
-                .join(", ")
-        })
-        .sorted()
-        .map(|u| format!("({u})"))
-        .join("")
-}
-
-fn perimeter(n: u64) -> u64 {
-    fn fib(term: u64, val: u64, prev: u64) -> u64 {
-        if term == 0 {
-            return prev;
-        }
-        fib(term - 1, val + prev, val)
-    }
-    4 * (fib(n + 3, 1, 0) - 1)
-}
-
-fn spinning_rings(inner_max: u64, outer_max: u64) -> u64 {
-    if (inner_max < 1000) & (outer_max < 1000) {
-        brute_force_spinnig(inner_max, outer_max)
-    } else {
-        println!("inner: {inner_max}, outer: {outer_max}");
-
-        let base = min(&inner_max, &outer_max).to_owned();
-
-        let bf = brute_force_spinnig(inner_max, outer_max);
-
-        for i in ((base - 2050)..=(base - 2000)).step_by(2) {
-            let result = brute_force_spinnig(inner_max - i, outer_max - i);
-            print!("inner: {inner_max}, outer: {outer_max},     ");
-            println!("i:    {i}, result: {result}");
-        }
-
-        bf
-    }
-}
-
-fn brute_force_spinnig(inner_max: u64, outer_max: u64) -> u64 {
-    let mut inner_ring = std::iter::once(0).chain((1..=inner_max).rev()).cycle();
-    let mut outer_ring = (0..=outer_max).cycle();
-    make_one_turn(&mut inner_ring, &mut outer_ring);
-    let (mut inner_position, mut outer_position) = make_one_turn(&mut inner_ring, &mut outer_ring);
-    let mut increments: u64 = 1;
-
-    while inner_position != outer_position {
-        (inner_position, outer_position) = make_one_turn(&mut inner_ring, &mut outer_ring);
-
-        increments += 1;
-    }
-    increments
-}
-
-fn make_one_turn(
-    inner_ring: &mut std::iter::Cycle<
-        std::iter::Chain<std::iter::Once<u64>, std::iter::Rev<std::ops::RangeInclusive<u64>>>,
-    >,
-    outer_ring: &mut std::iter::Cycle<std::ops::RangeInclusive<u64>>,
-) -> (u64, u64) {
-    let inner_next = inner_ring.next();
-    let outer_next = outer_ring.next();
-    match (inner_next, outer_next) {
-        (Some(u), Some(v)) => (u, v),
-        _ => panic!(),
-    }
-}
-
-fn solution(s: &str) -> String {
-    s.chars()
-        .map(|x| {
-            if x.is_uppercase() {
-                format!(" {x}")
-            } else {
-                x.to_string()
-            }
-        })
-        .collect()
-}
-
-fn count_duplicates(text: &str) -> u32 {
-    let max_couter = text.chars().collect::<Counter<_>>();
-    (max_couter.values().max().unwrap() - 1) as u32
-    // u32::try_from(max_couter - 1).unwrap()
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+
+    use std::cmp::{min, Ordering};
+    use std::collections::HashMap;
+
+    use itertools::{enumerate, Itertools};
+    fn delete_nth(lst: &[u8], n: usize) -> Vec<u8> {
+        let mut array: Vec<u8> = Vec::new();
+        for val in lst {
+            let number_of_elements = array.iter().filter(|x| x == &val).count();
+            if number_of_elements < n {
+                array.push(val.to_owned());
+            }
+        }
+        array
+    }
+
+    fn find_uniq(arr: &[f64]) -> f64 {
+        let first = &arr[0];
+        let filtered = arr.iter().filter(|x| x != &first).collect::<Vec<_>>();
+        if filtered.len() == 1 {
+            filtered[0].to_owned()
+        } else {
+            first.to_owned()
+        }
+    }
+
+    fn list_squared(m: u64, n: u64) -> Vec<(u64, u64)> {
+        let int_sqrt = |x: u64| (x as f64).sqrt() as u64;
+        let get_divisors = |x: u64| (1..x + 1).filter(move |y| (x % y) == 0);
+
+        let mut results = Vec::new();
+        for i in m..n {
+            let divisors = get_divisors(i).collect::<Vec<_>>();
+            let sq_div_sum = divisors.iter().map(|x| x * x).sum();
+            if int_sqrt(sq_div_sum) * int_sqrt(sq_div_sum) == sq_div_sum {
+                results.push((i, sq_div_sum));
+            }
+        }
+        results
+    }
+
+    fn order(sentence: &str) -> String {
+        if sentence.is_empty() {
+            return String::from("");
+        }
+        let extract_number = |x: &str| x.chars().find(|y| y.is_ascii_digit());
+        sentence
+            .split(" ")
+            .map(|x| (x, extract_number(x)))
+            .sorted_by_key(|x| x.1)
+            .map(|x| x.0)
+            .join(" ")
+    }
+
+    fn encrypt_this(text: &str) -> String {
+        fn get_ascii(x: &str) -> String {
+            x.chars().map(|x: char| format!("{}", x as u8)).join("")
+        }
+
+        fn process_word(word: &str) -> String {
+            if word.len() == 1 {
+                get_ascii(word)
+            } else if word.len() == 2 {
+                get_ascii(&word[..1]) + &word[1..]
+            } else {
+                get_ascii(&word[..1]) + &invert_second_and_last(&word[1..])
+            }
+        }
+
+        fn invert_second_and_last(text: &str) -> String {
+            let second = text.chars().take(1).join("");
+            let last = text.chars().last().unwrap().to_string();
+            last + &text[1..(text.len() - 1)] + &second
+        }
+        text.split(" ").map(process_word).join(" ")
+    }
+
+    fn good_vs_evil(good: &str, evil: &str) -> String {
+        let good_multipliers = vec![1, 2, 3, 3, 4, 10];
+        let evil_multipliers = vec![1, 2, 2, 2, 3, 5, 10];
+
+        fn calculate_power(army: &str, multiplier: Vec<u32>) -> u32 {
+            army.split_ascii_whitespace()
+                .map(|x| x.parse::<u32>().unwrap())
+                .zip(multiplier)
+                .map(|x| x.0 * x.1)
+                .sum()
+        }
+        let good_power = calculate_power(good, good_multipliers);
+        let evil_power = calculate_power(evil, evil_multipliers);
+
+        match good_power.cmp(&evil_power) {
+            Ordering::Greater => "Battle Result: Good triumphs over Evil".to_string(),
+            Ordering::Less => "Battle Result: Evil eradicates all trace of Good".to_string(),
+            Ordering::Equal => "Battle Result: No victor on this battle field".to_string(),
+        }
+    }
+
+    fn make_readable(seconds: u32) -> String {
+        let minutes = &seconds % 3600 / 60;
+        let remaining = &seconds % 60;
+        format!("{:0>2}:{:0>2}:{:0>2}", &seconds / 3600, minutes, remaining)
+    }
+    fn ips_between(start: &str, end: &str) -> u32 {
+        fn parse_ip(ip: &str) -> Vec<i64> {
+            ip.split(".")
+                .map(|num| num.parse::<i64>().unwrap())
+                .collect()
+        }
+        let ip_differences = &parse_ip(end)
+            .iter()
+            .zip(parse_ip(start).iter())
+            .map(|x| x.0 - x.1)
+            .rev()
+            .collect::<Vec<_>>();
+
+        let mut result: i64 = 0;
+        for (idx, diff) in enumerate(ip_differences) {
+            let modifier = i64::pow(256, idx as u32) * diff;
+            result += modifier;
+        }
+        result as u32
+    }
+
+    fn min_umbrellas(weather: &[&str]) -> usize {
+        let mut home_stock: u32 = 0;
+        let mut work_stock: u32 = 0;
+        for (time, &weather) in weather.iter().enumerate() {
+            match weather {
+                "rainy" | "thunderstorms" => {
+                    if time % 2 == 0 {
+                        work_stock += 1;
+                        home_stock = home_stock.saturating_sub(1);
+                    } else {
+                        home_stock += 1;
+                        work_stock = work_stock.saturating_sub(1);
+                    }
+                }
+                _ => (),
+            };
+        }
+        (home_stock + work_stock) as usize
+    }
+
+    fn get_pins(observed: &str) -> Vec<String> {
+        fn pin_matcher(x: char) -> Vec<String> {
+            let found = match x {
+                '0' => "08",
+                '1' => "124",
+                '2' => "1235",
+                '3' => "236",
+                '4' => "1457",
+                '5' => "24568",
+                '6' => "3569",
+                '7' => "478",
+                '8' => "57890",
+                '9' => "689",
+                _ => panic!(),
+            };
+            found.chars().map(String::from).collect()
+        }
+        let matches = observed
+            .chars()
+            .map(pin_matcher)
+            .multi_cartesian_product()
+            .map(|x| x.join(""))
+            .collect();
+
+        matches
+    }
+
+    fn meeting(s: &str) -> String {
+        s.split(";")
+            .map(|x| {
+                x.to_uppercase()
+                    .split(":")
+                    .collect::<Vec<_>>()
+                    .iter()
+                    .rev()
+                    .join(", ")
+            })
+            .sorted()
+            .map(|u| format!("({u})"))
+            .join("")
+    }
+
+    fn perimeter(n: u64) -> u64 {
+        fn fib(term: u64, val: u64, prev: u64) -> u64 {
+            if term == 0 {
+                return prev;
+            }
+            fib(term - 1, val + prev, val)
+        }
+        4 * (fib(n + 3, 1, 0) - 1)
+    }
+
+    fn count_duplicates(text: &str) -> u32 {
+        let mut counter: HashMap<char, u32> = HashMap::new();
+
+        for char in text.to_lowercase().chars() {
+            if let std::collections::hash_map::Entry::Vacant(e) = counter.entry(char) {
+                e.insert(1);
+            } else {
+                *counter.get_mut(&char).unwrap() += 1;
+            }
+        }
+
+        (counter
+            .values()
+            .filter(|v| **v > 1)
+            .collect::<Vec<_>>()
+            .len()) as u32
+    }
 
     #[test]
     fn test_abcde() {
@@ -273,12 +222,25 @@ mod tests {
     #[test]
     fn test_abcdea() {
         assert_eq!(count_duplicates("abcdea"), 1);
+        assert_eq!(count_duplicates("ABBA"), 2)
     }
 
-    // #[test]
-    // fn test_indivisibility() {
-    //     assert_eq!(count_duplicates("indivisibility"), 1);
-    // }
+    #[test]
+    fn test_indivisibility() {
+        assert_eq!(count_duplicates("indivisibility"), 1);
+    }
+
+    fn solution(s: &str) -> String {
+        s.chars()
+            .map(|x| {
+                if x.is_uppercase() {
+                    format!(" {x}")
+                } else {
+                    x.to_string()
+                }
+            })
+            .collect()
+    }
 
     #[test]
     fn test_solution() {
@@ -286,57 +248,111 @@ mod tests {
         assert_eq!(solution("camelCasingTest"), "camel Casing Test");
     }
 
-    // #[test]
-    // fn sample_spinning_rings() {
-    //     assert_eq!(spinning_rings(2, 3), 5);
-    //     assert_eq!(spinning_rings(5, 5), 3);
-    //     assert_eq!(spinning_rings(2, 10), 13);
-    //     assert_eq!(spinning_rings(10, 2), 10);
-    //     assert_eq!(spinning_rings(7, 9), 4);
-    //     assert_eq!(spinning_rings(20, 10), 16);
-    //     assert_eq!(spinning_rings(40, 20), 31);
-    //     assert_eq!(spinning_rings(80, 40), 61);
+    fn spinning_rings(inner_max: u64, outer_max: u64) -> u64 {
+        if (inner_max < 1000) & (outer_max < 1000) {
+            brute_force_spinnig(inner_max, outer_max)
+        } else {
+            println!("inner: {inner_max}, outer: {outer_max}");
 
-    //     assert_eq!(spinning_rings(200, 100), 151);
-    //     assert_eq!(spinning_rings(300, 200), 251);
-    //     assert_eq!(spinning_rings(400, 300), 351);
-    //     assert_eq!(spinning_rings(500, 400), 451);
-    //     assert_eq!(spinning_rings(600, 500), 551);
-    //     assert_eq!(spinning_rings(700, 600), 651);
+            let base = min(&inner_max, &outer_max).to_owned();
 
-    //     assert_eq!(spinning_rings(201, 101), 101);
-    //     assert_eq!(spinning_rings(301, 201), 151);
-    //     assert_eq!(spinning_rings(401, 301), 201);
-    //     assert_eq!(spinning_rings(501, 401), 251);
-    //     assert_eq!(spinning_rings(601, 501), 301);
-    //     assert_eq!(spinning_rings(701, 601), 351);
+            let bf = brute_force_spinnig(inner_max, outer_max);
 
-    //     assert_eq!(spinning_rings(400, 200), 301);
-    //     assert_eq!(spinning_rings(800, 400), 601);
+            for b in (1..40) {
+                for i in (0..40).step_by(1) {
+                    let result = brute_force_spinnig(i, b);
+                    print!("inner: {inner_max}, outer: {outer_max},     ");
+                    let prod = i * b;
+                    println!("i:    {i},b: {b}, prod: {prod}, result: {result}");
+                }
+            }
 
-    //     assert_eq!(spinning_rings(20, 1), 41);
-    //     assert_eq!(spinning_rings(20, 2), 21);
-    //     assert_eq!(spinning_rings(20, 3), 39);
-    //     assert_eq!(spinning_rings(20, 4), 18);
-    //     assert_eq!(spinning_rings(20, 5), 39);
-    //     assert_eq!(spinning_rings(20, 6), 21);
-    //     assert_eq!(spinning_rings(20, 7), 37);
-    //     assert_eq!(spinning_rings(20, 8), 15);
-    //     assert_eq!(spinning_rings(20, 9), 36);
-    //     assert_eq!(spinning_rings(20, 10), 16);
-    //     assert_eq!(spinning_rings(20, 11), 33);
-    //     assert_eq!(spinning_rings(20, 12), 17);
-    //     assert_eq!(spinning_rings(20, 13), 35);
-    //     assert_eq!(spinning_rings(20, 14), 18);
-    //     assert_eq!(spinning_rings(20, 15), 29);
-    //     assert_eq!(spinning_rings(20, 16), 19);
-    //     assert_eq!(spinning_rings(20, 17), 30);
-    //     assert_eq!(spinning_rings(20, 18), 20);
-    //     assert_eq!(spinning_rings(20, 19), 31);
-    //     assert_eq!(spinning_rings(20, 20), 21);
+            bf
+        }
+    }
 
-    //     assert_eq!(spinning_rings(2_u64.pow(24), 3_u64.pow(15)), 23951671 + 1);
-    // }
+    fn brute_force_spinnig(inner_max: u64, outer_max: u64) -> u64 {
+        let mut inner_ring = std::iter::once(0).chain((1..=inner_max).rev()).cycle();
+        let mut outer_ring = (0..=outer_max).cycle();
+        make_one_turn(&mut inner_ring, &mut outer_ring);
+        let (mut inner_position, mut outer_position) =
+            make_one_turn(&mut inner_ring, &mut outer_ring);
+        let mut increments: u64 = 1;
+
+        while inner_position != outer_position {
+            (inner_position, outer_position) = make_one_turn(&mut inner_ring, &mut outer_ring);
+
+            increments += 1;
+        }
+        increments
+    }
+
+    fn make_one_turn(
+        inner_ring: &mut std::iter::Cycle<
+            std::iter::Chain<std::iter::Once<u64>, std::iter::Rev<std::ops::RangeInclusive<u64>>>,
+        >,
+        outer_ring: &mut std::iter::Cycle<std::ops::RangeInclusive<u64>>,
+    ) -> (u64, u64) {
+        let inner_next = inner_ring.next();
+        let outer_next = outer_ring.next();
+        match (inner_next, outer_next) {
+            (Some(u), Some(v)) => (u, v),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn sample_spinning_rings() {
+        assert_eq!(spinning_rings(2, 3), 5);
+        assert_eq!(spinning_rings(3, 2), 2);
+        assert_eq!(spinning_rings(5, 5), 3);
+        assert_eq!(spinning_rings(2, 10), 13);
+        assert_eq!(spinning_rings(10, 2), 10);
+        assert_eq!(spinning_rings(7, 9), 4);
+        assert_eq!(spinning_rings(20, 10), 16);
+        assert_eq!(spinning_rings(40, 20), 31);
+        assert_eq!(spinning_rings(80, 40), 61);
+
+        //     assert_eq!(spinning_rings(200, 100), 151);
+        //     assert_eq!(spinning_rings(300, 200), 251);
+        //     assert_eq!(spinning_rings(400, 300), 351);
+        //     assert_eq!(spinning_rings(500, 400), 451);
+        //     assert_eq!(spinning_rings(600, 500), 551);
+        //     assert_eq!(spinning_rings(700, 600), 651);
+
+        //     assert_eq!(spinning_rings(201, 101), 101);
+        //     assert_eq!(spinning_rings(301, 201), 151);
+        //     assert_eq!(spinning_rings(401, 301), 201);
+        //     assert_eq!(spinning_rings(501, 401), 251);
+        //     assert_eq!(spinning_rings(601, 501), 301);
+        //     assert_eq!(spinning_rings(701, 601), 351);
+
+        //     assert_eq!(spinning_rings(400, 200), 301);
+        //     assert_eq!(spinning_rings(800, 400), 601);
+
+        //     assert_eq!(spinning_rings(20, 1), 41);
+        //     assert_eq!(spinning_rings(20, 2), 21);
+        //     assert_eq!(spinning_rings(20, 3), 39);
+        //     assert_eq!(spinning_rings(20, 4), 18);
+        //     assert_eq!(spinning_rings(20, 5), 39);
+        //     assert_eq!(spinning_rings(20, 6), 21);
+        //     assert_eq!(spinning_rings(20, 7), 37);
+        //     assert_eq!(spinning_rings(20, 8), 15);
+        //     assert_eq!(spinning_rings(20, 9), 36);
+        //     assert_eq!(spinning_rings(20, 10), 16);
+        //     assert_eq!(spinning_rings(20, 11), 33);
+        //     assert_eq!(spinning_rings(20, 12), 17);
+        //     assert_eq!(spinning_rings(20, 13), 35);
+        //     assert_eq!(spinning_rings(20, 14), 18);
+        //     assert_eq!(spinning_rings(20, 15), 29);
+        //     assert_eq!(spinning_rings(20, 16), 19);
+        //     assert_eq!(spinning_rings(20, 17), 30);
+        //     assert_eq!(spinning_rings(20, 18), 20);
+        //     assert_eq!(spinning_rings(20, 19), 31);
+        //     assert_eq!(spinning_rings(20, 20), 21);
+
+        // assert_eq!(spinning_rings(2_u64.pow(24), 3_u64.pow(15)), 23951671 + 1);
+    }
 
     #[test]
     fn basics_perimeter() {
