@@ -1,4 +1,3 @@
-
 use ndarray::{prelude::*, ViewRepr};
 
 type Point = i8;
@@ -36,14 +35,6 @@ fn is_winning_grid(grid: Grid) -> Option<Winner> {
     None
 }
 
-fn is_winning_sequence(slice: GridSlice) -> Option<Winner> {
-    match slice.sum() {
-        3 => Some(Winner::Human),
-        -3 => Some(Winner::CPU),
-        _ => None,
-    }
-}
-
 fn main() {}
 
 #[cfg(test)]
@@ -55,25 +46,6 @@ mod tests {
         let empty_grid = create_grid();
         assert_eq!(empty_grid, Array::zeros((3, 3)));
         assert_eq!(empty_grid, array![[0, 0, 0], [0, 0, 0], [0, 0, 0],]);
-    }
-
-    #[test]
-    fn no_wining_sequence_from_empty_line() {
-        let empty_grid = create_grid();
-        let empty_line = empty_grid.slice(s![.., 0]);
-        let result = is_winning_sequence(empty_line);
-        assert!(result.is_none());
-        let result = is_winning_sequence(array![0, 0, 0].slice(s![..]));
-        assert!(result.is_none());
-    }
-
-    #[test]
-    fn get_result_for_wining_sequence() {
-        let result = is_winning_sequence(array![1, 1, 1].slice(s![..]));
-        assert_eq!(result.unwrap(), Winner::Human);
-
-        let result = is_winning_sequence(array![-1, -1, -1].slice(s![..]));
-        assert_eq!(result.unwrap(), Winner::CPU);
     }
 
     #[test]
