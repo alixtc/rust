@@ -3,8 +3,13 @@ use ndarray::prelude::*;
 type Point = i8;
 type Grid = ndarray::ArrayBase<ndarray::OwnedRepr<Point>, ndarray::Dim<[usize; 2]>>;
 
+pub trait GridChecker {
+    fn is_grid_full(&self) -> bool;
+    fn is_winning_grid(&self) -> Option<Winner>;
+}
+
 #[derive(Debug, PartialEq)]
-enum Player {
+pub enum Player {
     Human,
     Cpu,
 }
@@ -14,31 +19,32 @@ type Winner = Player;
 fn create_grid() -> Grid {
     Array::zeros((3, 3))
 }
+impl GridChecker for Grid {
+    fn is_winning_grid(&self) -> Option<Winner> {
+        let lines = self.sum_axis(Axis(1));
+        let columns = self.sum_axis(Axis(0));
 
-fn is_winning_grid(grid: &Grid) -> Option<Winner> {
-    let lines = grid.sum_axis(Axis(1));
-    let columns = grid.sum_axis(Axis(0));
+        let diag = self.diag().sum();
 
-    let diag = grid.diag().sum();
+        let anti_diag = (0..=2).map(|x| self[[x, 2 - x]]).sum::<Point>();
 
-    let anti_diag = (0..=2).map(|x| grid[[x, 2 - x]]).sum::<Point>();
-
-    for val in [lines.to_vec(), columns.to_vec(), vec![diag, anti_diag]].concat() {
-        match val {
-            3 => return Some(Winner::Human),
-            -3 => return Some(Winner::Cpu),
-            _ => (),
+        for val in [lines.to_vec(), columns.to_vec(), vec![diag, anti_diag]].concat() {
+            match val {
+                3 => return Some(Winner::Human),
+                -3 => return Some(Winner::Cpu),
+                _ => (),
+            }
         }
+
+        None
     }
 
-    None
+    fn is_grid_full(&self) -> bool {
+        self.flatten().iter().filter(|x| **x == 0).count() == 0
+    }
 }
 
-fn is_grid_full(grid: &Grid) -> bool {
-    grid.flatten().iter().filter(|x| **x == 0).count() == 0
-}
-
-fn extract_empty_positions(grid: &Grid) -> Vec<usize> {
+pub fn extract_empty_positions(grid: &Grid) -> Vec<usize> {
     grid.iter()
         .enumerate()
         .filter_map(|(flat_idx, val)| if *val == 0 { Some(flat_idx) } else { None })
@@ -47,8 +53,8 @@ fn extract_empty_positions(grid: &Grid) -> Vec<usize> {
 
 fn main() {
     let grid = create_grid();
-    println!("{}", is_grid_full(&grid));
-    println!("{:?}", is_winning_grid(&grid));
+    println!("{}", grid.is_grid_full());
+    println!("{:?}", grid.is_winning_grid());
 }
 
 #[cfg(test)]
@@ -66,62 +72,62 @@ mod tests {
     fn is_wining_grid_should_return_none_with_no_winner() {
         let grid = create_grid();
 
-        let result = is_winning_grid(&grid);
+        let result = grid.is_winning_grid();
         assert!(result.is_none());
     }
 
     #[test]
     fn is_wining_grid_should_return_winner_on_lines() {
         let grid = array![[0, 0, 0], [1, 1, 1], [0, 0, 0]];
-        let result = is_winning_grid(&grid);
+        let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Human);
 
         let grid = array![[0, 0, 0], [-1, -1, -1], [0, 0, 0]];
-        let result = is_winning_grid(&grid);
+        let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Cpu);
     }
     #[test]
     fn is_wining_grid_should_return_winner_on_columns() {
         let grid = array![[1, 0, 0], [1, 0, 0], [1, 0, 0]];
-        let result = is_winning_grid(&grid);
+        let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Human);
 
         let grid = array![[-1, 0, 0], [-1, 0, 0], [-1, 0, 0]];
-        let result = is_winning_grid(&grid);
+        let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Cpu);
     }
 
     #[test]
     fn is_wining_grid_should_return_winner_on_diagonal() {
         let grid = array![[1, 0, 0], [0, 1, 0], [0, 0, 1]];
-        let result = is_winning_grid(&grid);
+        let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Human);
 
         let grid = array![[-1, 0, 0], [0, -1, 0], [0, 0, -1]];
-        let result = is_winning_grid(&grid);
+        let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Cpu);
     }
 
     #[test]
     fn is_wining_grid_should_return_winner_on_antidiagonal() {
         let grid = array![[0, 0, 1], [0, 1, 0], [1, 0, 0]];
-        let result = is_winning_grid(&grid);
+        let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Human);
 
         let grid = array![[0, 0, -1], [0, -1, 0], [-1, 0, 0]];
-        let result = is_winning_grid(&grid);
+        let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Cpu);
     }
 
     #[test]
     fn is_grid_full_should_detect_empty_slots() {
         let grid = array![[0, 0, 1], [0, 0, 0], [1, 0, 0]];
-        assert!(!is_grid_full(&grid));
+        assert!(!grid.is_grid_full());
     }
     #[test]
     fn is_grid_full_returns_true_with_no_empty_spots() {
         let grid = array![[-1, -1, 1], [-1, -1, -1], [1, -1, -1]];
-        assert!(is_grid_full(&grid));
+        assert!(grid.is_grid_full());
     }
 
     #[test]
