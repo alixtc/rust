@@ -1,8 +1,7 @@
-use ndarray::{prelude::*, ViewRepr};
+use ndarray::prelude::*;
 
 type Point = i8;
 type Grid = ndarray::ArrayBase<ndarray::OwnedRepr<Point>, ndarray::Dim<[usize; 2]>>;
-type GridSlice<'a> = ArrayBase<ViewRepr<&'a Point>, Dim<[usize; 1]>>;
 
 #[derive(Debug, PartialEq)]
 enum Player {
@@ -33,6 +32,10 @@ fn is_winning_grid(grid: Grid) -> Option<Winner> {
     }
 
     None
+}
+
+fn is_grid_full(grid: Grid) -> bool {
+    grid.flatten().iter().filter(|x| **x == 0).count() == 0
 }
 
 fn main() {}
@@ -97,5 +100,16 @@ mod tests {
         let grid = array![[0, 0, -1], [0, -1, 0], [-1, 0, 0]];
         let result = is_winning_grid(grid);
         assert_eq!(result.unwrap(), Winner::CPU);
+    }
+
+    #[test]
+    fn is_grid_full_should_detect_empty_slots() {
+        let grid = array![[0, 0, 1], [0, 0, 0], [1, 0, 0]];
+        assert!(!is_grid_full(grid));
+    }
+    #[test]
+    fn is_grid_full_returns_true_with_no_empty_spots() {
+        let grid = array![[-1, -1, 1], [-1, -1, -1], [1, -1, -1]];
+        assert!(is_grid_full(grid));
     }
 }
