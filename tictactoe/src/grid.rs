@@ -1,4 +1,5 @@
 use ndarray::prelude::*;
+use std::collections::HashMap;
 use std::io;
 
 type Point = i8;
@@ -45,13 +46,18 @@ impl GridChecker for Grid {
     }
 }
 
-pub fn extract_empty_positions(grid: &Grid) -> Vec<usize> {
-    grid.iter()
+pub fn extract_empty_positions(grid: &Grid) -> HashMap<usize, (usize, usize)> {
+    grid.indexed_iter()
         .enumerate()
-        .filter_map(|(flat_idx, val)| if *val == 0 { Some(flat_idx) } else { None })
-        .collect()
+        .filter_map(|(flat_idx, (row_col_idx, val))| {
+            if *val == 0 {
+                Some((flat_idx, row_col_idx))
+            } else {
+                None
+            }
+        })
+        .collect::<HashMap<_, _>>()
 }
-
 
 pub fn ask_for_position<R>(mut reader: R) -> String
 // Required to facilitate testing
@@ -146,8 +152,11 @@ mod tests {
     #[test]
     fn extract_empty_positions_returns_an_array() {
         let grid = array![[-1, 1, 1], [0, -1, 1], [1, -1, 0]];
-        assert_eq!(extract_empty_positions(&grid), vec![3, 8]);
+        assert_eq!(
+            extract_empty_positions(&grid),
+            HashMap::from([(8, (2, 2)), (3, (1, 0))])
+        );
         let grid = array![[-1, 1, 1], [-1, -1, 1], [1, -1, -1]];
-        assert_eq!(extract_empty_positions(&grid), vec![]);
+        assert_eq!(extract_empty_positions(&grid), HashMap::new());
     }
 }
