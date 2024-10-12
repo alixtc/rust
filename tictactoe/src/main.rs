@@ -2,6 +2,7 @@ use grid::*;
 
 mod cpu;
 mod grid;
+mod mocktest;
 
 fn main() {
     let empty_grid = grid::create_grid();
