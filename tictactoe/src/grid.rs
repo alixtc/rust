@@ -1,6 +1,5 @@
 use ndarray::prelude::*;
 use std::collections::HashMap;
-use std::io;
 
 type Point = i8;
 pub type Grid = ndarray::ArrayBase<ndarray::OwnedRepr<Point>, ndarray::Dim<[usize; 2]>>;
@@ -59,26 +58,9 @@ pub fn extract_empty_positions(grid: &Grid) -> HashMap<usize, (usize, usize)> {
         .collect::<HashMap<_, _>>()
 }
 
-pub fn ask_for_position<R>(mut reader: R) -> String
-// Required to facilitate testing
-where
-    R: io::BufRead,
-{
-    let mut s = String::new();
-    reader.read_line(&mut s).expect("Unable to read");
-    s
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_request_user_input() {
-        let dummy_input = b"I'm George";
-        let answer = ask_for_position(&dummy_input[..]);
-        assert_eq!("I'm George", answer);
-    }
 
     #[test]
     fn creates_an_empty_grid() {
