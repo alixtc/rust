@@ -7,7 +7,7 @@ use rand::{seq::SliceRandom, thread_rng};
 fn make_random_move(grid: &Grid) -> Grid {
     let empty_position = extract_empty_positions(grid);
     let mut rng = thread_rng();
-    let random_positions = empty_position
+    let random_grid_coordinates = empty_position
         .values()
         .collect::<Vec<_>>()
         .choose(&mut rng)
@@ -15,7 +15,7 @@ fn make_random_move(grid: &Grid) -> Grid {
         .to_owned();
 
     let mut new_grid = grid.clone();
-    new_grid[*random_positions] = -1;
+    new_grid.insert(*random_grid_coordinates, -1);
     new_grid
 }
 
@@ -25,14 +25,14 @@ enum Marker {
     O = -1,
 }
 
-fn extract_winning_positions(grid: &Grid, marker: &Marker) -> Vec<(usize, usize)> {
-    let mut winning_position = Vec::<(usize, usize)>::new();
+fn extract_winning_positions(grid: &Grid, marker: &Marker) -> Vec<(i32, i32)> {
+    let mut winning_position = Vec::<(i32, i32)>::new();
 
-    for ((x, y), _) in grid.indexed_iter().filter(|(_, val)| **val == 0) {
+    for ((x, y), _) in grid.iter().filter(|(_, val)| **val == 0) {
         let mut attempt_grid = grid.clone();
-        attempt_grid[[x, y]] = *marker as i8;
+        attempt_grid.insert((*x, *y), *marker as i32);
         if attempt_grid.is_winning_grid().is_some() {
-            winning_position.push((x, y));
+            winning_position.push((*x, *y));
         }
     }
 
@@ -41,9 +41,9 @@ fn extract_winning_positions(grid: &Grid, marker: &Marker) -> Vec<(usize, usize)
 
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
 enum Difficulty {
-    Low = 0,
-    Medium = 1,
-    High = 2,
+    Low,
+    Medium,
+    High,
 }
 
 fn make_cpu_move(grid: &Grid, difficulty: Difficulty) -> Grid {
@@ -52,7 +52,7 @@ fn make_cpu_move(grid: &Grid, difficulty: Difficulty) -> Grid {
         if !winning_moves.is_empty() {
             let mut new_grid = grid.clone();
             let (x, y) = winning_moves[0];
-            new_grid[[x, y]] = -1;
+            new_grid.insert((x, y), -1);
             return new_grid;
         }
     }
@@ -62,7 +62,7 @@ fn make_cpu_move(grid: &Grid, difficulty: Difficulty) -> Grid {
         if !adversary_winning_moves.is_empty() {
             let mut new_grid = grid.clone();
             let (x, y) = adversary_winning_moves[0];
-            new_grid[[x, y]] = -1;
+            new_grid.insert((x, y), -1);
             return new_grid;
         }
     }
@@ -72,32 +72,33 @@ fn make_cpu_move(grid: &Grid, difficulty: Difficulty) -> Grid {
 
 #[cfg(test)]
 mod tests {
+    use super::super::grid::from_array;
     use super::*;
-    use ndarray::prelude::*;
+    use std::collections::HashSet;
 
     #[test]
     fn make_random_move_should_add_minus_one() {
         #[rustfmt::skip]
-        let grid = array![
+        let grid = from_array([
             [0, 0, 1],
             [0, -1, 0],
             [1, 0, 0],
-        ];
+        ]);
         let new_grid = make_random_move(&grid);
-        let zero_delta =
-            grid.iter().filter(|x| **x == 0).count() - new_grid.iter().filter(|x| **x == 0).count();
+        let zero_delta = grid.values().filter(|x| **x == 0).count()
+            - new_grid.values().filter(|x| **x == 0).count();
         assert_eq!(zero_delta, 1);
-        assert_eq!(new_grid.iter().filter(|x| **x == -1).count(), 2);
+        assert_eq!(new_grid.values().filter(|x| **x == -1).count(), 2);
     }
 
     #[test]
     fn extract_winning_positions_returns_empty_array_with_no_winning_position() {
         #[rustfmt::skip]
-        let grid = array![
+        let grid = from_array([
             [1, -1, 1],
             [-1, 0, 1],
             [1, 1, -1],
-        ];
+        ]);
         let positions = extract_winning_positions(&grid, &Marker::O);
         assert_eq!(positions, Vec::new())
     }
@@ -105,11 +106,11 @@ mod tests {
     #[test]
     fn extract_winning_positions_returns_array_of_tuples() {
         #[rustfmt::skip]
-        let grid = array![
+        let grid = from_array([
             [1, 0, 1],
             [-1, 0, -1],
             [1, 1, -1],
-        ];
+        ]);
         let positions = extract_winning_positions(&grid, &Marker::O);
         assert_eq!(positions, vec![(1, 1)])
     }
@@ -117,48 +118,52 @@ mod tests {
     #[test]
     fn extract_winning_positions_work_on_diagonal_and_anti_diagonal() {
         #[rustfmt::skip]
-        let grid = array![
+        let grid = from_array([
             [-1, 1, -1],
             [1, -1, 1],
             [0, 0, 0],
-        ];
+        ]);
         let positions = extract_winning_positions(&grid, &Marker::O);
-        assert_eq!(positions, vec![(2, 0), (2, 2),]);
+        assert_eq!(
+            HashSet::from([(2, 0), (2, 2)]),
+            HashSet::from_iter(positions)
+        );
     }
 
     #[test]
     fn extract_winning_positions_allows_to_switch_player() {
         #[rustfmt::skip]
-        let grid = array![
+        let grid = from_array([
             [1, -1, 1],
             [0, 0, -1],
             [1, 1, -1],
-        ];
+        ]);
         let positions = extract_winning_positions(&grid, &Marker::X);
-        assert_eq!(positions.len(), 2);
+        assert_eq!(positions.len(), 1);
+        assert_eq!(positions, [(1, 0)])
     }
 
     #[test]
     fn make_cpu_move_should_fill_an_empty_slot_on_low_difficulty() {
         #[rustfmt::skip]
-        let grid = array![
+        let grid = from_array([
             [1, 0, 0],
             [0, 0, 0],
             [0, 0, 0],
-        ];
+        ]);
         let grid_after_action = make_cpu_move(&grid, Difficulty::Low);
-        assert_eq!(grid_after_action.iter().filter(|x| **x == -1).count(), 1);
+        assert_eq!(grid_after_action.values().filter(|x| **x == -1).count(), 1);
     }
 
     #[test]
     fn make_cpu_move_should_fill_block_auto_win_when_medium_difficulty() {
         #[rustfmt::skip]
-        let grid = array![
+        let grid = from_array([
             [1, 0, 0],
             [1, -1, 0],
             [0, 0, 0],
-        ];
-        let expected = array![[1, 0, 0], [1, -1, 0], [-1, 0, 0],];
+        ]);
+        let expected = from_array([[1, 0, 0], [1, -1, 0], [-1, 0, 0]]);
         let grid_after_action = make_cpu_move(&grid, Difficulty::Medium);
         assert_eq!(grid_after_action, expected);
     }
@@ -166,12 +171,12 @@ mod tests {
     #[test]
     fn make_cpu_move_should_fill_block_auto_win_when_high_difficulty() {
         #[rustfmt::skip]
-        let grid = array![
+        let grid = from_array([
             [1, 0, 0],
             [1, -1, 0],
             [0, 0, 0],
-        ];
-        let expected = array![[1, 0, 0], [1, -1, 0], [-1, 0, 0],];
+        ]);
+        let expected = from_array([[1, 0, 0], [1, -1, 0], [-1, 0, 0]]);
         let grid_after_action = make_cpu_move(&grid, Difficulty::High);
         assert_eq!(grid_after_action, expected);
     }
@@ -179,12 +184,12 @@ mod tests {
     #[test]
     fn make_cpu_move_should_make_winning_move_on_high_difficulty() {
         #[rustfmt::skip]
-        let grid = array![
+        let grid = from_array([
             [1, -1, 0],
             [1, -1, 0],
             [0, 0, 0],
-        ];
-        let expected = array![[1, -1, 0], [1, -1, 0], [0, -1, 0],];
+        ]);
+        let expected = from_array([[1, -1, 0], [1, -1, 0], [0, -1, 0]]);
         let grid_after_action = make_cpu_move(&grid, Difficulty::High);
         assert_eq!(grid_after_action, expected);
     }
