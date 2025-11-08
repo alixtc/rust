@@ -14,28 +14,29 @@ fn main() {
     let available_positions = empty_grid.extract_empty_positions();
     println!("{available_positions:?}");
     let new_grid = cpu::make_cpu_move(&empty_grid, cpu::Difficulty::Low);
-    println!("New Grid: {new_grid:?}");
+    println!("New Grid:\n{}", new_grid.render());
 }
 
 fn main_menu() {
-    let input = ask_for_input();
+    let input = ask_user_input(None);
     let input = input.trim();
     match input {
         "d" => (),
-        "q" => (),
+        "q" => std::process::exit(0),
         _ => (),
     }
 }
 
-fn ask_for_input() -> String {
+fn ask_user_input(message: Option<&str>) -> String {
+    let default = "Tests";
     io::stdout()
-        .write_all(b"Please select an option from the menu:\n")
+        .write_all(message.unwrap_or(default).as_bytes())
         .unwrap();
     let mut input = String::new();
     io::stdin()
         .read_line(&mut input)
         .expect("Unable to read user input");
-    input.to_owned()
+    input
 }
 
 pub fn ask_for_position<R>(mut reader: R) -> String

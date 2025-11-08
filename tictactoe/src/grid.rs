@@ -10,8 +10,8 @@ pub enum Player {
 }
 
 type Winner = Player;
-
 type ManualGrid = [[i32; 3]; 3];
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Grid {
     pub grid: HashMap<(i32, i32), i32>,
@@ -38,6 +38,43 @@ pub trait GridChecker {
     fn extract_empty_positions(&self) -> HashMap<usize, (i32, i32)>;
 }
 
+impl Grid {
+    pub fn render(&self) -> String {
+        let rows_with_glyphs = self.regroup_glyphs_by_row();
+
+        let joined_row_glyphs = rows_with_glyphs
+            .values()
+            .map(|glyphs| glyphs.join("|"))
+            .collect::<Vec<_>>()
+            .join("\n---+---+---\n");
+
+        joined_row_glyphs
+    }
+
+    fn regroup_glyphs_by_row(&self) -> HashMap<i32, Vec<String>> {
+        self.grid
+            .iter()
+            .map(|((x, y), val)| {
+                (
+                    x,
+                    y,
+                    match val {
+                        0 => "   ",
+                        1 => " X ",
+                        -1 => " O ",
+                        _ => panic!("Wrong value inside tictactoe grid"),
+                    },
+                )
+            })
+            .sorted()
+            .into_grouping_map_by(|(row, _, _)| **row)
+            .fold(Vec::new(), |mut acc, _key, val| {
+                acc.push(val.2.to_owned());
+                acc
+            })
+    }
+}
+
 pub fn from_array(array: ManualGrid) -> Grid {
     let mut grid = HashMap::new();
     for (ix_row, row) in array.iter().enumerate() {
@@ -58,27 +95,30 @@ pub fn create_grid() -> Grid {
 
 impl GridChecker for Grid {
     fn is_winning_grid(&self) -> Option<Winner> {
-        let local_grid = &self.grid;
-        let lines: Vec<i32> = local_grid
+        let lines: Vec<i32> = self
+            .grid
             .iter()
             .into_grouping_map_by(|((row, _), _)| row)
             .fold(0, |acc, _key, (_, val)| acc + val)
             .into_values()
             .collect();
-        let columns: Vec<i32> = local_grid
+        let columns: Vec<i32> = self
+            .grid
             .iter()
             .into_grouping_map_by(|((_, col), _)| col)
             .fold(0, |acc, _key, (_, val)| acc + val)
             .into_values()
             .collect();
 
-        let diag = local_grid
+        let diag = self
+            .grid
             .iter()
             .filter(|((row, col), _)| row == col)
             .map(|((_, _), val)| val)
             .sum();
 
-        let anti_diag = local_grid
+        let anti_diag = self
+            .grid
             .iter()
             .filter(|((row, col), _)| [2, 4, 6].contains(&(row + col)))
             .map(|(_, val)| val)
@@ -224,5 +264,18 @@ mod tests {
     fn extract_empty_positions_returns_an_empty_array_on_full_grid() {
         let grid = from_array([[-1, 1, 1], [-1, -1, 1], [1, -1, -1]]);
         assert_eq!(grid.extract_empty_positions(), HashMap::new());
+    }
+
+    #[test]
+    fn render_should_have_column_separator() {
+        let grid = from_array([[-1, 1, 1], [0, -1, 1], [1, -1, -1]]);
+        assert!(grid.render().contains(" O | X | X "));
+        assert!(grid.render().contains("   | O | X "));
+        assert!(grid.render().contains(" X | O | O "));
+    }
+    #[test]
+    fn render_should_have_row_separator() {
+        let grid = from_array([[-1, 1, 1], [-1, -1, 1], [1, -1, -1]]);
+        assert!(grid.render().contains("\n---+---+---\n"));
     }
 }
