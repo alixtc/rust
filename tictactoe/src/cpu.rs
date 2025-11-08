@@ -3,8 +3,9 @@ use crate::GridChecker;
 use super::grid::{Grid, Marker};
 
 use rand::{seq::SliceRandom, thread_rng};
+use std::io;
 
-#[derive(Copy, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub enum Difficulty {
     Low = 1,
     Medium = 2,
@@ -48,6 +49,21 @@ pub fn make_cpu_move(grid: &Grid, difficulty: Difficulty) -> Grid {
     }
 
     make_random_move(grid)
+}
+
+pub fn parse_difficulty<R>(mut reader: R) -> Option<Difficulty> 
+where
+    R: io::BufRead,
+{
+    let mut buffer = String::new();
+    reader.read_line(&mut buffer).expect("Unable to read");
+
+    match buffer.trim().to_lowercase().as_str() {
+        "l" | "1" => Some(Difficulty::Low),
+        "m" | "2" => Some(Difficulty::Medium),
+        "h" | "3" => Some(Difficulty::High),
+        _ => None,
+    }
 }
 
 #[cfg(test)]
@@ -181,4 +197,21 @@ mod tests {
         let grid_after_action = make_cpu_move(&grid, Difficulty::High);
         assert_eq!(grid_after_action, expected);
     }
+
+    #[test]
+    fn parse_difficulty_should_handle_multiple_type_of_user_inputs() {
+        for input in [b"l", b"1", b"L"].iter() {
+            let answer = parse_difficulty(&input[..]);
+            assert_eq!(answer, Some(Difficulty::Low));
+        }
+        for input in [b"m", b"2", b"M"].iter() {
+            let answer = parse_difficulty(&input[..]);
+            assert_eq!(answer, Some(Difficulty::Medium));
+        }
+        for input in [b"h", b"3", b"H"].iter() {
+            let answer = parse_difficulty(&input[..]);
+            assert_eq!(answer, Some(Difficulty::High));
+        }
+    }
+    
 }
