@@ -1,11 +1,18 @@
 use crate::GridChecker;
 
-use super::grid::{extract_empty_positions, Grid};
+use super::grid::{Grid, Marker};
 
 use rand::{seq::SliceRandom, thread_rng};
 
+#[derive(Copy, Clone, PartialEq, PartialOrd)]
+pub enum Difficulty {
+    Low = 1,
+    Medium = 2,
+    High = 3,
+}
+
 fn make_random_move(grid: &Grid) -> Grid {
-    let empty_position = extract_empty_positions(grid);
+    let empty_position = grid.extract_empty_positions();
     let mut rng = thread_rng();
     let random_grid_coordinates = empty_position
         .values()
@@ -19,36 +26,9 @@ fn make_random_move(grid: &Grid) -> Grid {
     new_grid
 }
 
-#[derive(Copy, Clone, PartialEq, PartialOrd)]
-enum Marker {
-    X = 1,
-    O = -1,
-}
-
-fn extract_winning_positions(grid: &Grid, marker: &Marker) -> Vec<(i32, i32)> {
-    let mut winning_position = Vec::<(i32, i32)>::new();
-
-    for ((x, y), _) in grid.grid.iter().filter(|(_, val)| **val == 0) {
-        let mut attempt_grid = grid.clone();
-        attempt_grid.insert((*x, *y), *marker as i32);
-        if attempt_grid.is_winning_grid().is_some() {
-            winning_position.push((*x, *y));
-        }
-    }
-
-    winning_position
-}
-
-#[derive(Copy, Clone, PartialEq, PartialOrd)]
-enum Difficulty {
-    Low = 1,
-    Medium = 2,
-    High = 3,
-}
-
-fn make_cpu_move(grid: &Grid, difficulty: Difficulty) -> Grid {
+pub fn make_cpu_move(grid: &Grid, difficulty: Difficulty) -> Grid {
     if difficulty == Difficulty::High {
-        let winning_moves = extract_winning_positions(grid, &Marker::O);
+        let winning_moves = grid.extract_winning_positions(&Marker::O);
         if !winning_moves.is_empty() {
             let mut new_grid = grid.clone();
             let (x, y) = winning_moves[0];
@@ -58,7 +38,7 @@ fn make_cpu_move(grid: &Grid, difficulty: Difficulty) -> Grid {
     }
 
     if difficulty >= Difficulty::Medium {
-        let adversary_winning_moves = extract_winning_positions(grid, &Marker::X);
+        let adversary_winning_moves = grid.extract_winning_positions(&Marker::X);
         if !adversary_winning_moves.is_empty() {
             let mut new_grid = grid.clone();
             let (x, y) = adversary_winning_moves[0];
@@ -85,9 +65,9 @@ mod tests {
             [1, 0, 0],
         ]);
         let new_grid = make_random_move(&grid);
-        let orinal_nb_of_empty_positions = grid.grid.values().filter(|x| **x == 0).count();
-        let final_nb_of_empty_positions = new_grid.grid.values().filter(|x| **x == 0).count();
-        let zero_delta = orinal_nb_of_empty_positions - final_nb_of_empty_positions;
+
+        let zero_delta =
+            grid.extract_empty_positions().len() - new_grid.extract_empty_positions().len();
         assert_eq!(zero_delta, 1);
         assert_eq!(new_grid.grid.values().filter(|x| **x == -1).count(), 2);
     }
@@ -100,7 +80,7 @@ mod tests {
             [-1, 0, 1],
             [1, 1, -1],
         ]);
-        let positions = extract_winning_positions(&grid, &Marker::O);
+        let positions = grid.extract_winning_positions(&Marker::O);
         assert_eq!(positions, Vec::new())
     }
 
@@ -112,7 +92,7 @@ mod tests {
             [-1, 0, -1],
             [1, 1, -1],
         ]);
-        let positions = extract_winning_positions(&grid, &Marker::O);
+        let positions = grid.extract_winning_positions(&Marker::O);
         assert_eq!(positions, vec![(1, 1)])
     }
 
@@ -124,7 +104,7 @@ mod tests {
             [1, -1, 1],
             [0, 0, 0],
         ]);
-        let positions = extract_winning_positions(&grid, &Marker::O);
+        let positions = grid.extract_winning_positions(&Marker::O);
         assert_eq!(
             HashSet::from([(2, 0), (2, 2)]),
             HashSet::from_iter(positions)
@@ -139,7 +119,7 @@ mod tests {
             [0, 0, -1],
             [1, 1, -1],
         ]);
-        let positions = extract_winning_positions(&grid, &Marker::X);
+        let positions = grid.extract_winning_positions(&Marker::X);
         assert_eq!(positions.len(), 1);
         assert_eq!(positions, [(1, 0)])
     }

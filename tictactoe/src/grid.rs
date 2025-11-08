@@ -10,7 +10,6 @@ pub enum Player {
 }
 
 type Winner = Player;
-// pub type Grid = ndarray::ArrayBase<ndarray::OwnedRepr<Point>, ndarray::Dim<[usize; 2]>>;
 
 type ManualGrid = [[i32; 3]; 3];
 #[derive(Debug, PartialEq, Clone)]
@@ -19,15 +18,24 @@ pub struct Grid {
     pub size: usize,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub enum Marker {
+    X = 1,
+    O = -1,
+}
+
 impl From<ManualGrid> for Grid {
     fn from(array: ManualGrid) -> Grid {
         from_array(array)
     }
 }
+
 pub trait GridChecker {
     fn is_grid_full(&self) -> bool;
     fn is_winning_grid(&self) -> Option<Winner>;
     fn insert(&mut self, key: (i32, i32), value: i32);
+    fn extract_winning_positions(&self, marker: &Marker) -> Vec<(i32, i32)>;
+    fn extract_empty_positions(&self) -> HashMap<usize, (i32, i32)>;
 }
 
 pub fn from_array(array: ManualGrid) -> Grid {
@@ -96,9 +104,27 @@ impl GridChecker for Grid {
         new_grid.insert(key, value);
         self.grid = new_grid;
     }
+
+    fn extract_winning_positions(&self, marker: &Marker) -> Vec<(i32, i32)> {
+        let mut winning_position = Vec::<(i32, i32)>::new();
+
+        for ((x, y), _) in self.grid.iter().filter(|(_, val)| **val == 0) {
+            let mut attempt_grid = self.clone();
+            attempt_grid.insert((*x, *y), *marker as i32);
+            if attempt_grid.is_winning_grid().is_some() {
+                winning_position.push((*x, *y));
+            }
+        }
+
+        winning_position
+    }
+
+    fn extract_empty_positions(&self) -> HashMap<usize, (i32, i32)> {
+        extract_empty_positions(self)
+    }
 }
 
-pub fn extract_empty_positions(grid: &Grid) -> HashMap<usize, (i32, i32)> {
+fn extract_empty_positions(grid: &Grid) -> HashMap<usize, (i32, i32)> {
     grid.grid
         .iter()
         .enumerate()
@@ -190,13 +216,13 @@ mod tests {
     fn extract_empty_positions_returns_an_array() {
         let grid = from_array([[-1, 1, 1], [0, -1, 1], [1, -1, 0]]);
         assert_eq!(
-            HashSet::from_iter(extract_empty_positions(&grid).values().cloned()),
+            HashSet::from_iter(grid.extract_empty_positions().values().cloned()),
             HashSet::from([(2, 2), (1, 0)])
         )
     }
     #[test]
     fn extract_empty_positions_returns_an_empty_array_on_full_grid() {
         let grid = from_array([[-1, 1, 1], [-1, -1, 1], [1, -1, -1]]);
-        assert_eq!(extract_empty_positions(&grid), HashMap::new());
+        assert_eq!(grid.extract_empty_positions(), HashMap::new());
     }
 }
