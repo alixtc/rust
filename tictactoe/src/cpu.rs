@@ -19,7 +19,7 @@ fn make_random_move(grid: &Grid) -> Grid {
     new_grid
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, PartialOrd)]
 enum Marker {
     X = 1,
     O = -1,
@@ -28,7 +28,7 @@ enum Marker {
 fn extract_winning_positions(grid: &Grid, marker: &Marker) -> Vec<(i32, i32)> {
     let mut winning_position = Vec::<(i32, i32)>::new();
 
-    for ((x, y), _) in grid.iter().filter(|(_, val)| **val == 0) {
+    for ((x, y), _) in grid.grid.iter().filter(|(_, val)| **val == 0) {
         let mut attempt_grid = grid.clone();
         attempt_grid.insert((*x, *y), *marker as i32);
         if attempt_grid.is_winning_grid().is_some() {
@@ -41,9 +41,9 @@ fn extract_winning_positions(grid: &Grid, marker: &Marker) -> Vec<(i32, i32)> {
 
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
 enum Difficulty {
-    Low,
-    Medium,
-    High,
+    Low = 1,
+    Medium = 2,
+    High = 3,
 }
 
 fn make_cpu_move(grid: &Grid, difficulty: Difficulty) -> Grid {
@@ -85,10 +85,11 @@ mod tests {
             [1, 0, 0],
         ]);
         let new_grid = make_random_move(&grid);
-        let zero_delta = grid.values().filter(|x| **x == 0).count()
-            - new_grid.values().filter(|x| **x == 0).count();
+        let orinal_nb_of_empty_positions = grid.grid.values().filter(|x| **x == 0).count();
+        let final_nb_of_empty_positions = new_grid.grid.values().filter(|x| **x == 0).count();
+        let zero_delta = orinal_nb_of_empty_positions - final_nb_of_empty_positions;
         assert_eq!(zero_delta, 1);
-        assert_eq!(new_grid.values().filter(|x| **x == -1).count(), 2);
+        assert_eq!(new_grid.grid.values().filter(|x| **x == -1).count(), 2);
     }
 
     #[test]
@@ -152,7 +153,14 @@ mod tests {
             [0, 0, 0],
         ]);
         let grid_after_action = make_cpu_move(&grid, Difficulty::Low);
-        assert_eq!(grid_after_action.values().filter(|x| **x == -1).count(), 1);
+        assert_eq!(
+            grid_after_action
+                .grid
+                .values()
+                .filter(|x| **x == -1)
+                .count(),
+            1
+        );
     }
 
     #[test]
