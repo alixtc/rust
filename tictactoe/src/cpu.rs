@@ -51,19 +51,28 @@ pub fn make_cpu_move(grid: &Grid, difficulty: Difficulty) -> Grid {
     make_random_move(grid)
 }
 
-pub fn parse_difficulty<R>(mut reader: R) -> Option<Difficulty> 
+pub fn parse_difficulty<R>(mut reader: R) -> Option<Difficulty>
 where
     R: io::BufRead,
 {
+    println!(
+        "
+Please select difficulty between:
+    1 - Low (l)
+    2 - Medium (m)
+    3 - High (h)
+"
+    );
     let mut buffer = String::new();
     reader.read_line(&mut buffer).expect("Unable to read");
 
-    match buffer.trim().to_lowercase().as_str() {
+    let result = match buffer.trim().to_lowercase().as_str() {
         "l" | "1" => Some(Difficulty::Low),
         "m" | "2" => Some(Difficulty::Medium),
         "h" | "3" => Some(Difficulty::High),
-        _ => None,
-    }
+        _ => return None,
+    };
+    result
 }
 
 #[cfg(test)]
@@ -213,5 +222,12 @@ mod tests {
             assert_eq!(answer, Some(Difficulty::High));
         }
     }
-    
+
+    #[test]
+    fn parse_difficulty_should_return_none_on_wrong_input() {
+        for input in [b"x", b"8", b"B"].iter() {
+            let answer = parse_difficulty(&input[..]);
+            assert!(answer.is_none());
+        }
+    }
 }
