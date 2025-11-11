@@ -2,6 +2,7 @@ use itertools::*;
 
 use std::collections::HashMap;
 use std::convert::From;
+use std::io;
 
 #[derive(Debug, PartialEq)]
 pub enum Player {
@@ -40,11 +41,12 @@ pub trait GridChecker {
 
 impl Grid {
     pub fn render(&self) -> String {
-        let rows_with_glyphs = self.regroup_glyphs_by_row();
+        let glyph_list_by_row = self.regroup_glyphs_by_row();
 
-        let joined_row_glyphs = rows_with_glyphs
-            .values()
-            .map(|glyphs| glyphs.join("|"))
+        let joined_row_glyphs = glyph_list_by_row
+            .iter()
+            .sorted_by_key(|(key, _)| *key)
+            .map(|(_, glyphs)| glyphs.join("|"))
             .collect::<Vec<_>>()
             .join("\n---+---+---\n");
 
@@ -54,19 +56,20 @@ impl Grid {
     fn regroup_glyphs_by_row(&self) -> HashMap<i32, Vec<String>> {
         self.grid
             .iter()
-            .map(|((x, y), val)| {
+            .sorted_by_key(|((x, y), _)| (x, y))
+            .enumerate()
+            .map(|(idx, ((x, y), val))| {
                 (
                     x,
                     y,
                     match val {
-                        0 => "   ",
-                        1 => " X ",
-                        -1 => " O ",
+                        0 => format!(" {glyph} ", glyph = idx + 1),
+                        1 => " X ".to_owned(),
+                        -1 => " O ".to_owned(),
                         _ => panic!("Wrong value inside tictactoe grid"),
                     },
                 )
             })
-            .sorted()
             .into_grouping_map_by(|(row, _, _)| **row)
             .fold(Vec::new(), |mut acc, _key, val| {
                 acc.push(val.2.to_owned());
@@ -160,22 +163,52 @@ impl GridChecker for Grid {
     }
 
     fn extract_empty_positions(&self) -> HashMap<usize, (i32, i32)> {
-        extract_empty_positions(self)
+        self.grid
+            .iter()
+            .sorted_by_key(|((row, col), _)| (row, col))
+            .enumerate()
+            .filter_map(|(flat_idx, (row_col_idx, val))| {
+                if *val == 0 {
+                    Some((flat_idx + 1, row_col_idx.to_owned()))
+                } else {
+                    None
+                }
+            })
+            .collect::<HashMap<_, (_, _)>>()
     }
 }
 
-fn extract_empty_positions(grid: &Grid) -> HashMap<usize, (i32, i32)> {
-    grid.grid
-        .iter()
-        .enumerate()
-        .filter_map(|(flat_idx, (row_col_idx, val))| {
-            if *val == 0 {
-                Some((flat_idx, row_col_idx.to_owned()))
-            } else {
-                None
-            }
-        })
-        .collect::<HashMap<_, (_, _)>>()
+pub fn make_user_turn<R, G>(grid: &Grid, mut reader: G) -> Grid
+where
+    G: FnMut() -> R,
+    R: io::BufRead,
+{
+    // let list_of_choices = &empty_postions
+    //     .keys()
+    //     .map(|x| x.to_string())
+    //     .sorted()
+    //     .collect::<Vec<_>>()
+    //     .join(", ");
+    let empty_postions = &grid.extract_empty_positions();
+    let mut positions: Option<(i32, i32)> = None;
+    while positions.is_none() {
+        println!("\n{}\n", grid.render());
+        // println!(
+        //     "Please select one of the available positions:\n{}",
+        //     list_of_choices
+        // );
+        let mut string_buffer = String::new();
+        reader()
+            .read_line(&mut string_buffer)
+            .expect("Unable to read user input during play turn");
+        println!("Candidate: {}", string_buffer.trim());
+        let candidate: usize = string_buffer.trim().parse().unwrap_or(0);
+        positions = empty_postions.get(&candidate).cloned();
+    }
+    let final_coordinates: (i32, i32) = positions.unwrap();
+    let mut grid_after_move = grid.clone();
+    grid_after_move.insert(final_coordinates, 1);
+    grid_after_move
 }
 
 #[cfg(test)]
@@ -260,6 +293,20 @@ mod tests {
             HashSet::from([(2, 2), (1, 0)])
         )
     }
+
+    #[test]
+    fn extract_empty_positions_should_be_in_row_col_order() {
+        let grid = from_array([[-1, 1, 1], [0, -1, 1], [1, -1, 0]]);
+        assert_eq!(
+            grid.extract_empty_positions()
+                .keys()
+                .cloned()
+                .sorted()
+                .collect::<Vec<_>>(),
+            vec![4, 9]
+        )
+    }
+
     #[test]
     fn extract_empty_positions_returns_an_empty_array_on_full_grid() {
         let grid = from_array([[-1, 1, 1], [-1, -1, 1], [1, -1, -1]]);
@@ -268,14 +315,65 @@ mod tests {
 
     #[test]
     fn render_should_have_column_separator() {
-        let grid = from_array([[-1, 1, 1], [0, -1, 1], [1, -1, -1]]);
+        let grid = from_array([[-1, 1, 1], [1, -1, 1], [1, -1, -1]]);
         assert!(grid.render().contains(" O | X | X "));
-        assert!(grid.render().contains("   | O | X "));
+        assert!(grid.render().contains(" X | O | X "));
         assert!(grid.render().contains(" X | O | O "));
+    }
+
+    #[test]
+    fn render_should_display_empty_position_as_numbers() {
+        let grid = from_array([[0, 1, 1], [0, -1, 1], [0, -1, 0]]);
+        assert!(grid.render().contains(" 1 | X | X "));
+        assert!(grid.render().contains(" 4 | O | X "));
+        assert!(grid.render().contains(" 7 | O | 9 "));
+    }
+
+    #[test]
+    fn render_should_have_rows_consecutively() {
+        let grid = from_array([[0, 1, 1], [0, -1, 1], [0, -1, 0]]);
+
+        assert!(grid
+            .render()
+            .contains("-\n 4 | O | X \n---+---+---\n 7 | O | 9 "));
     }
     #[test]
     fn render_should_have_row_separator() {
         let grid = from_array([[-1, 1, 1], [-1, -1, 1], [1, -1, -1]]);
         assert!(grid.render().contains("\n---+---+---\n"));
+    }
+
+    #[test]
+    fn make_user_turn_should_fill_one_empty_position_in_grid() {
+        let original_grid = from_array([[1, -1, 0], [1, -1, 0], [0, 0, 0]]);
+
+        let get_mock_reader = || std::io::Cursor::new("3".as_bytes());
+
+        let grid_after_turn = make_user_turn(&original_grid, get_mock_reader);
+        assert!(
+            grid_after_turn.extract_empty_positions().len()
+                < original_grid.extract_empty_positions().len()
+        )
+    }
+
+    #[test]
+    fn make_user_turn_should_prompt_until_user_selects_an_empty_position() {
+        let mut mock_inputs = vec!["invalid", "l", "1"];
+
+        let get_mock_reader = || {
+            let input_str = mock_inputs.remove(0);
+            std::io::Cursor::new(input_str.as_bytes())
+        };
+
+        let grid = from_array([[0, -1, 0], [1, -1, 0], [0, 0, 0]]);
+        let filled_grid = make_user_turn(&grid, get_mock_reader);
+
+        let new_empty_positions = filled_grid
+            .extract_empty_positions()
+            .keys()
+            .cloned()
+            .sorted()
+            .collect::<Vec<usize>>();
+        assert_eq!(new_empty_positions, vec![3, 6, 7, 8, 9]);
     }
 }

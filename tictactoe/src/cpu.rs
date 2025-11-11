@@ -3,7 +3,7 @@ use crate::GridChecker;
 use super::grid::{Grid, Marker};
 
 use rand::{seq::SliceRandom, thread_rng};
-use std::io;
+use std::{io, usize};
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub enum Difficulty {
@@ -196,12 +196,7 @@ mod tests {
 
     #[test]
     fn make_cpu_move_should_make_winning_move_on_high_difficulty() {
-        #[rustfmt::skip]
-        let grid = from_array([
-            [1, -1, 0],
-            [1, -1, 0],
-            [0, 0, 0],
-        ]);
+        let grid = from_array([[1, -1, 0], [1, -1, 0], [0, 0, 0]]);
         let expected = from_array([[1, -1, 0], [1, -1, 0], [0, -1, 0]]);
         let grid_after_action = make_cpu_move(&grid, Difficulty::High);
         assert_eq!(grid_after_action, expected);
