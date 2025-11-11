@@ -3,7 +3,7 @@ use crate::GridChecker;
 use super::grid::{Grid, Marker};
 
 use rand::{seq::SliceRandom, thread_rng};
-use std::io;
+use std::{io, usize};
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub enum Difficulty {

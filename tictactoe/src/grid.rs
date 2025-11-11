@@ -230,7 +230,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
+    use std::{collections::HashSet, ops::Not};
 
     use super::*;
 
@@ -332,6 +332,19 @@ mod tests {
         )
     }
 
+    #[test]
+
+    fn extract_empty_positions_should_be_in_row_col_order() {
+        let grid = from_array([[-1, 1, 1], [0, -1, 1], [1, -1, 0]]);
+        assert_eq!(
+            grid.extract_empty_positions()
+                .keys()
+                .cloned()
+                .sorted()
+                .collect::<Vec<_>>(),
+            vec![4, 9]
+        )
+    }
     #[test]
     fn extract_empty_positions_returns_an_empty_array_on_full_grid() {
         let grid = from_array([[-1, 1, 1], [-1, -1, 1], [1, -1, -1]]);
