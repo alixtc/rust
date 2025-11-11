@@ -15,7 +15,7 @@ type ManualGrid = [[i32; 3]; 3];
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Grid {
-    pub grid: HashMap<(i32, i32), i32>,
+    pub grid: HashMap<(i32, i32), Marker>,
     pub size: usize,
 }
 
@@ -23,6 +23,17 @@ pub struct Grid {
 pub enum Marker {
     X = 1,
     O = -1,
+    Null = 0,
+}
+
+impl Marker {
+    pub fn to_int(self) -> i32 {
+        match self {
+            Marker::X => 1,
+            Marker::O => -1,
+            Marker::Null => 0,
+        }
+    }
 }
 
 impl From<ManualGrid> for Grid {
@@ -34,7 +45,7 @@ impl From<ManualGrid> for Grid {
 pub trait GridChecker {
     fn is_grid_full(&self) -> bool;
     fn is_winning_grid(&self) -> Option<Winner>;
-    fn insert(&mut self, key: (i32, i32), value: i32);
+    fn insert(&mut self, key: (i32, i32), value: Marker);
     fn extract_winning_positions(&self, marker: &Marker) -> Vec<(i32, i32)>;
     fn extract_empty_positions(&self) -> HashMap<usize, (i32, i32)>;
 }
@@ -63,10 +74,9 @@ impl Grid {
                     x,
                     y,
                     match val {
-                        0 => format!(" {glyph} ", glyph = idx + 1),
-                        1 => " X ".to_owned(),
-                        -1 => " O ".to_owned(),
-                        _ => panic!("Wrong value inside tictactoe grid"),
+                        Marker::Null => format!(" {glyph} ", glyph = idx + 1),
+                        Marker::X => " X ".to_owned(),
+                        Marker::O => " O ".to_owned(),
                     },
                 )
             })
@@ -82,7 +92,14 @@ pub fn from_array(array: ManualGrid) -> Grid {
     let mut grid = HashMap::new();
     for (ix_row, row) in array.iter().enumerate() {
         for (ix_col, value) in row.iter().enumerate() {
-            grid.insert((ix_row as i32, ix_col as i32), value.to_owned());
+            grid.insert(
+                (ix_row as i32, ix_col as i32),
+                match value {
+                    1 => Marker::X,
+                    -1 => Marker::O,
+                    _ => Marker::Null,
+                },
+            );
         }
     }
     Grid { grid, size: 3 }
@@ -91,7 +108,7 @@ pub fn from_array(array: ManualGrid) -> Grid {
 pub fn create_grid() -> Grid {
     let mut grid = HashMap::new();
     for x in 0..=8 {
-        grid.insert((x / 3, x % 3), 0);
+        grid.insert((x / 3, x % 3), Marker::Null);
     }
     Grid { grid, size: 3 }
 }
@@ -102,14 +119,14 @@ impl GridChecker for Grid {
             .grid
             .iter()
             .into_grouping_map_by(|((row, _), _)| row)
-            .fold(0, |acc, _key, (_, val)| acc + val)
+            .fold(0, |acc, _key, (_, val)| acc + val.to_int())
             .into_values()
             .collect();
         let columns: Vec<i32> = self
             .grid
             .iter()
             .into_grouping_map_by(|((_, col), _)| col)
-            .fold(0, |acc, _key, (_, val)| acc + val)
+            .fold(0, |acc, _key, (_, val)| acc + val.to_int())
             .into_values()
             .collect();
 
@@ -117,14 +134,14 @@ impl GridChecker for Grid {
             .grid
             .iter()
             .filter(|((row, col), _)| row == col)
-            .map(|((_, _), val)| val)
+            .map(|((_, _), val)| val.to_int())
             .sum();
 
         let anti_diag = self
             .grid
             .iter()
             .filter(|((row, col), _)| [2, 4, 6].contains(&(row + col)))
-            .map(|(_, val)| val)
+            .map(|(_, val)| val.to_int())
             .sum();
 
         for val in [lines.to_vec(), columns.to_vec(), vec![diag, anti_diag]].concat() {
@@ -139,10 +156,10 @@ impl GridChecker for Grid {
     }
 
     fn is_grid_full(&self) -> bool {
-        self.grid.values().filter(|x| **x == 0).count() == 0
+        self.grid.values().filter(|x| **x == Marker::Null).count() == 0
     }
 
-    fn insert(&mut self, key: (i32, i32), value: i32) {
+    fn insert(&mut self, key: (i32, i32), value: Marker) {
         let mut new_grid = self.grid.clone();
         new_grid.insert(key, value);
         self.grid = new_grid;
@@ -151,9 +168,9 @@ impl GridChecker for Grid {
     fn extract_winning_positions(&self, marker: &Marker) -> Vec<(i32, i32)> {
         let mut winning_position = Vec::<(i32, i32)>::new();
 
-        for ((x, y), _) in self.grid.iter().filter(|(_, val)| **val == 0) {
+        for ((x, y), _) in self.grid.iter().filter(|(_, val)| **val == Marker::Null) {
             let mut attempt_grid = self.clone();
-            attempt_grid.insert((*x, *y), *marker as i32);
+            attempt_grid.insert((*x, *y), *marker);
             if attempt_grid.is_winning_grid().is_some() {
                 winning_position.push((*x, *y));
             }
@@ -168,7 +185,7 @@ impl GridChecker for Grid {
             .sorted_by_key(|((row, col), _)| (row, col))
             .enumerate()
             .filter_map(|(flat_idx, (row_col_idx, val))| {
-                if *val == 0 {
+                if *val == Marker::Null {
                     Some((flat_idx + 1, row_col_idx.to_owned()))
                 } else {
                     None
@@ -207,7 +224,7 @@ where
     }
     let final_coordinates: (i32, i32) = positions.unwrap();
     let mut grid_after_move = grid.clone();
-    grid_after_move.insert(final_coordinates, 1);
+    grid_after_move.insert(final_coordinates, Marker::X);
     grid_after_move
 }
 
@@ -216,6 +233,14 @@ mod tests {
     use std::collections::HashSet;
 
     use super::*;
+
+    #[test]
+    fn markers_shoud_be_convertible_to_integers() {
+        assert_eq!(Marker::X.to_int(), 1);
+        assert_eq!(Marker::O.to_int(), -1);
+        assert_eq!(Marker::Null.to_int(), 0);
+
+    }
 
     #[test]
     fn creates_an_empty_grid() {

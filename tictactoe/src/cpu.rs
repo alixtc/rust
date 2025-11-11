@@ -3,7 +3,7 @@ use crate::GridChecker;
 use super::grid::{Grid, Marker};
 
 use rand::{seq::SliceRandom, thread_rng};
-use std::{io, usize};
+use std::io;
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub enum Difficulty {
@@ -23,7 +23,7 @@ fn make_random_move(grid: &Grid) -> Grid {
         .to_owned();
 
     let mut new_grid = grid.clone();
-    new_grid.insert(*random_grid_coordinates, -1);
+    new_grid.insert(*random_grid_coordinates, Marker::O);
     new_grid
 }
 
@@ -33,7 +33,7 @@ pub fn make_cpu_move(grid: &Grid, difficulty: Difficulty) -> Grid {
         if !winning_moves.is_empty() {
             let mut new_grid = grid.clone();
             let (x, y) = winning_moves[0];
-            new_grid.insert((x, y), -1);
+            new_grid.insert((x, y), Marker::O);
             return new_grid;
         }
     }
@@ -43,7 +43,7 @@ pub fn make_cpu_move(grid: &Grid, difficulty: Difficulty) -> Grid {
         if !adversary_winning_moves.is_empty() {
             let mut new_grid = grid.clone();
             let (x, y) = adversary_winning_moves[0];
-            new_grid.insert((x, y), -1);
+            new_grid.insert((x, y), Marker::O);
             return new_grid;
         }
     }
@@ -94,7 +94,7 @@ mod tests {
         let zero_delta =
             grid.extract_empty_positions().len() - new_grid.extract_empty_positions().len();
         assert_eq!(zero_delta, 1);
-        assert_eq!(new_grid.grid.values().filter(|x| **x == -1).count(), 2);
+        assert_eq!(new_grid.grid.values().filter(|x| **x == Marker::O).count(), 2);
     }
 
     #[test]
@@ -162,7 +162,7 @@ mod tests {
             grid_after_action
                 .grid
                 .values()
-                .filter(|x| **x == -1)
+                .filter(|x| **x == Marker::O)
                 .count(),
             1
         );
