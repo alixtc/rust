@@ -11,23 +11,15 @@ mod mocktest;
 pub struct Leaderboard {
     cpu: i32,
     player: i32,
+    tie: i32,
 }
 
 impl Leaderboard {
-    fn update_score(&self, player: Option<Player>) -> Leaderboard {
-        if player.is_none() {
-            return self.to_owned();
-        }
-        let winner = player.unwrap();
-        match winner {
-            Player::Cpu => Leaderboard {
-                cpu: self.cpu + 1,
-                player: self.player,
-            },
-            Player::Human => Leaderboard {
-                cpu: self.cpu,
-                player: self.player + 1,
-            },
+    fn update_score(&mut self, player: Option<Player>) {
+        match player {
+            None => self.tie += 1,
+            Some(Player::Cpu) => self.cpu += 1,
+            Some(Player::Human) => self.player += 1,
         }
     }
 }
@@ -51,7 +43,11 @@ Please select something from main menu!
 
 fn main_menu() {
     let mut selected_difficulty = cpu::Difficulty::Medium;
-    let mut leaderboard = Leaderboard { cpu: 0, player: 0 };
+    let mut leaderboard = Leaderboard {
+        cpu: 0,
+        player: 0,
+        tie: 0,
+    };
     loop {
         print_main_screen_menu(selected_difficulty);
         let user_input = ask_user_input(|| io::stdin().lock())
@@ -61,7 +57,7 @@ fn main_menu() {
 
         if (user_input == "s") | (user_input == "1") {
             let winner = play_game(selected_difficulty);
-            leaderboard = leaderboard.update_score(winner);
+            leaderboard.update_score(winner);
         }
         if (user_input == "d") | (user_input == "2") {
             selected_difficulty = get_user_input_with(parse_difficulty, || io::stdin().lock());
@@ -141,18 +137,32 @@ mod tests {
     }
 
     #[test]
-    fn update_score_should_not_change_without_player() {
-        let board = Leaderboard { cpu: 1, player: 3 };
-        let player: Option<Player> = None;
-        assert_eq!(board, board.update_score(player));
+    fn update_score_should_not_change_without_winning_player() {
+        let mut board = Leaderboard {
+            cpu: 1,
+            player: 3,
+            tie: 0,
+        };
+
+        board.update_score(None);
+        assert_eq!(board.tie, 1);
     }
 
     #[test]
     fn update_score_should_increase_score_for_winning_player() {
-        let board = Leaderboard { cpu: 1, player: 3 };
-        let player = Some(Player::Human);
-        assert_eq!(&board.player + 1, board.update_score(player).player);
-        let player = Some(Player::Cpu);
-        assert_eq!(&board.cpu + 1, board.update_score(player).cpu);
+        let mut board = Leaderboard {
+            cpu: 1,
+            player: 3,
+            tie: 0,
+        };
+
+        let expected_score_player = &board.player + 1;
+        let expected_score_cpu = &board.cpu + 1;
+
+        board.update_score(Some(Player::Human));
+        assert_eq!(board.player, expected_score_player);
+
+        board.update_score(Some(Player::Cpu));
+        assert_eq!(board.cpu, expected_score_cpu);
     }
 }
