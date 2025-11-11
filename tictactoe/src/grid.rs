@@ -115,36 +115,42 @@ pub fn create_grid() -> Grid {
 
 impl GridChecker for Grid {
     fn is_winning_grid(&self) -> Option<Winner> {
-        let lines: Vec<i32> = self
+        let sum_per_row: Vec<i32> = self
             .grid
             .iter()
             .into_grouping_map_by(|((row, _), _)| row)
-            .fold(0, |acc, _key, (_, val)| acc + val.to_int())
+            .fold(0, |acc, _key, (_, mk)| acc + mk.to_int())
             .into_values()
             .collect();
-        let columns: Vec<i32> = self
+        let sum_per_column: Vec<i32> = self
             .grid
             .iter()
             .into_grouping_map_by(|((_, col), _)| col)
-            .fold(0, |acc, _key, (_, val)| acc + val.to_int())
+            .fold(0, |acc, _key, (_, mk)| acc + mk.to_int())
             .into_values()
             .collect();
 
-        let diag = self
+        let diagonal_sum = self
             .grid
             .iter()
             .filter(|((row, col), _)| row == col)
-            .map(|((_, _), val)| val.to_int())
+            .map(|((_, _), mk)| mk.to_int())
             .sum();
 
-        let anti_diag = self
+        let anti_diagonal_sum = self
             .grid
             .iter()
             .filter(|((row, col), _)| [2, 4, 6].contains(&(row + col)))
-            .map(|(_, val)| val.to_int())
+            .map(|(_, mk)| mk.to_int())
             .sum();
 
-        for val in [lines.to_vec(), columns.to_vec(), vec![diag, anti_diag]].concat() {
+        for val in [
+            sum_per_row,
+            sum_per_column,
+            vec![diagonal_sum, anti_diagonal_sum],
+        ]
+        .concat()
+        {
             match val {
                 3 => return Some(Winner::Human),
                 -3 => return Some(Winner::Cpu),
@@ -200,20 +206,20 @@ where
     G: FnMut() -> R,
     R: io::BufRead,
 {
-    // let list_of_choices = &empty_postions
-    //     .keys()
-    //     .map(|x| x.to_string())
-    //     .sorted()
-    //     .collect::<Vec<_>>()
-    //     .join(", ");
     let empty_postions = &grid.extract_empty_positions();
+    let list_of_choices = &empty_postions
+        .keys()
+        .map(|x| x.to_string())
+        .sorted()
+        .collect::<Vec<_>>()
+        .join(", ");
     let mut positions: Option<(i32, i32)> = None;
     while positions.is_none() {
         println!("\n{}\n", grid.render());
-        // println!(
-        //     "Please select one of the available positions:\n{}",
-        //     list_of_choices
-        // );
+        println!(
+            "Please select one of the available positions:\n{}",
+            list_of_choices
+        );
         let mut string_buffer = String::new();
         reader()
             .read_line(&mut string_buffer)
@@ -230,7 +236,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashSet, ops::Not};
+    use std::collections::HashSet;
 
     use super::*;
 
@@ -239,7 +245,6 @@ mod tests {
         assert_eq!(Marker::X.to_int(), 1);
         assert_eq!(Marker::O.to_int(), -1);
         assert_eq!(Marker::Null.to_int(), 0);
-
     }
 
     #[test]
