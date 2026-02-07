@@ -1,11 +1,10 @@
 use grid::*;
-use std::io::{self};
+use std::io;
 
 use crate::cpu::parse_difficulty;
 
 mod cpu;
 mod grid;
-mod mocktest;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Leaderboard {
@@ -22,7 +21,14 @@ impl Leaderboard {
             Some(Player::Human) => self.player += 1,
         }
     }
+
+    fn print_score(&self) {
+        println!("Here are the scores:");
+        println!("Player wins: {}   |   Computer Wins: {}   |   Ties: {}", self.player, self.cpu, self.tie);
+    }
 }
+
+
 
 fn main() {
     main_menu();
@@ -62,6 +68,9 @@ fn main_menu() {
         if (user_input == "d") | (user_input == "2") {
             selected_difficulty = get_user_input_with(parse_difficulty, || io::stdin().lock());
         }
+        if (user_input == "l") | (user_input == "3") {
+            leaderboard.print_score();
+        }
         if (user_input == "q") | (user_input == "4") {
             std::process::exit(0);
         }
@@ -72,16 +81,16 @@ fn play_game(difficulty: cpu::Difficulty) -> Option<grid::Player> {
     println!("Starting a new game!");
     let mut game_grid = grid::create_grid();
 
-    while !game_grid.is_grid_full() {
+    while !game_grid.is_grid_full() | game_grid.is_winning_grid().is_none() {
         game_grid = grid::make_user_turn(&game_grid, || io::stdin().lock());
 
-        if game_grid.is_grid_full() || game_grid.is_winning_grid().is_some() {
+        if game_grid.is_grid_full() | game_grid.is_winning_grid().is_some() {
             return game_grid.is_winning_grid();
         }
 
         game_grid = cpu::make_cpu_move(&game_grid, difficulty);
 
-        if game_grid.is_grid_full() || game_grid.is_winning_grid().is_some() {
+        if game_grid.is_grid_full() | game_grid.is_winning_grid().is_some() {
             return game_grid.is_winning_grid();
         }
     }

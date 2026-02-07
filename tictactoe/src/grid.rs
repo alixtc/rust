@@ -61,7 +61,7 @@ impl Grid {
             .collect::<Vec<_>>()
             .join("\n---+---+---\n");
 
-        joined_row_glyphs
+        format!("\n{}\n", joined_row_glyphs)
     }
 
     fn regroup_glyphs_by_row(&self) -> HashMap<i32, Vec<String>> {
@@ -140,7 +140,7 @@ impl GridChecker for Grid {
         let anti_diagonal_sum = self
             .grid
             .iter()
-            .filter(|((row, col), _)| [2, 4, 6].contains(&(row + col)))
+            .filter(|((row, col), _)| [[2, 0], [1, 1], [0, 2]].contains(&[*row, *col]))
             .map(|(_, mk)| mk.to_int())
             .sum();
 
@@ -215,7 +215,7 @@ where
         .join(", ");
     let mut positions: Option<(i32, i32)> = None;
     while positions.is_none() {
-        println!("\n{}\n", grid.render());
+        println!("{}", grid.render());
         println!(
             "Please select one of the available positions:\n{}",
             list_of_choices
@@ -224,7 +224,6 @@ where
         reader()
             .read_line(&mut string_buffer)
             .expect("Unable to read user input during play turn");
-        println!("Candidate: {}", string_buffer.trim());
         let candidate: usize = string_buffer.trim().parse().unwrap_or(0);
         positions = empty_postions.get(&candidate).cloned();
     }
@@ -234,9 +233,51 @@ where
     grid_after_move
 }
 
+#[rustfmt::skip]
+const X_GLYPH: [&str; 3] = [
+    " \\ / ", 
+    "  X  ", 
+    " / \\ "
+];
+
+#[rustfmt::skip]
+const O_GLYPH: [&str; 3] = [
+    " /‾\\ ",
+    "(   )", 
+    " \\_/ ",
+];
+
+#[rustfmt::skip]
+const EMPTY_GLYPH: [&str; 3] = [
+    "     ", 
+    "     ", 
+    "     "];
+
+fn print_glyphs() -> String {
+    // Board as a 2D array of glyphs
+    let board = vec![
+        [X_GLYPH, O_GLYPH, EMPTY_GLYPH],
+        [O_GLYPH, X_GLYPH, O_GLYPH],
+        [EMPTY_GLYPH, EMPTY_GLYPH, X_GLYPH],
+    ];
+
+    // Print the board row by row, line by line
+    board
+        .iter()
+        .map(|row| {
+            (0..3)
+                .map(|idx| {
+                    row.iter()
+                        .map(move |glyph| glyph[idx].to_owned())
+                        .join(" | ")
+                })
+                .join("\n")
+        })
+        .join("\n======+======+======\n")
+}
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
+    use std::{collections::HashSet, panic::resume_unwind};
 
     use super::*;
 
@@ -271,6 +312,15 @@ mod tests {
         let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Cpu);
     }
+
+    #[test]
+    fn is_wining_grid_should_report_human_wins() {
+    let grid = Grid::from([[0, 0, 1], [0, 1, -1], [1, 0, -1]]);    
+    let result = grid.is_winning_grid().unwrap();
+    assert_eq!(result, Winner::Human);
+    }
+
+
     #[test]
     fn is_wining_grid_should_return_winner_on_columns() {
         let grid = from_array([[1, 0, 0], [1, 0, 0], [1, 0, 0]]);
@@ -374,6 +424,16 @@ mod tests {
     }
 
     #[test]
+    fn render_should_start_and_end_with_line_breaks() {
+        let grid = from_array([[-1, 1, 1], [-1, -1, 1], [1, -1, -1]]);
+        let rendered = grid.render();
+        let first_char = rendered.chars().next().unwrap();
+        let last_char = rendered.chars().last().unwrap();
+        assert_eq!(first_char, '\n');
+        assert_eq!(last_char, '\n');
+    }
+
+    #[test]
     fn make_user_turn_should_fill_one_empty_position_in_grid() {
         let original_grid = from_array([[1, -1, 0], [1, -1, 0], [0, 0, 0]]);
 
@@ -405,5 +465,10 @@ mod tests {
             .sorted()
             .collect::<Vec<usize>>();
         assert_eq!(new_empty_positions, vec![3, 6, 7, 8, 9]);
+    }
+
+    #[test]
+    fn test_glyphs() {
+        println!("{}", print_glyphs())
     }
 }

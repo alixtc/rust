@@ -3,7 +3,7 @@ use crate::GridChecker;
 use super::grid::{Grid, Marker};
 
 use rand::{seq::SliceRandom, thread_rng};
-use std::{io, usize};
+use std::io;
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub enum Difficulty {
@@ -94,7 +94,10 @@ mod tests {
         let zero_delta =
             grid.extract_empty_positions().len() - new_grid.extract_empty_positions().len();
         assert_eq!(zero_delta, 1);
-        assert_eq!(new_grid.grid.values().filter(|x| **x == Marker::O).count(), 2);
+        assert_eq!(
+            new_grid.grid.values().filter(|x| **x == Marker::O).count(),
+            2
+        );
     }
 
     #[test]
@@ -145,8 +148,8 @@ mod tests {
             [1, 1, -1],
         ]);
         let positions = grid.extract_winning_positions(&Marker::X);
-        assert_eq!(positions.len(), 1);
-        assert_eq!(positions, [(1, 0)])
+        assert_eq!(positions.len(), 2);
+        assert_eq!(positions, [(1, 0), (1, 1)])
     }
 
     #[test]
