@@ -140,7 +140,7 @@ impl GridChecker for Grid {
         let anti_diagonal_sum = self
             .grid
             .iter()
-            .filter(|((row, col), _)| [[2, 0], [1, 1], [0, 2]].contains(&[*row, *col]))
+            .filter(|(row_col, _)|  [(2, 0), (1, 1), (0, 2)].contains(row_col))
             .map(|(_, mk)| mk.to_int())
             .sum();
 
@@ -235,16 +235,16 @@ where
 
 #[rustfmt::skip]
 const X_GLYPH: [&str; 3] = [
-    " \\ / ", 
-    "  X  ", 
-    " / \\ "
+    " \\ // ", 
+    "   X   ", 
+    " // \\ "
 ];
 
 #[rustfmt::skip]
 const O_GLYPH: [&str; 3] = [
-    " /‾\\ ",
-    "(   )", 
-    " \\_/ ",
+    " //‾\\ ",
+    "(     )", 
+    " \\_// ",
 ];
 
 #[rustfmt::skip]
@@ -277,7 +277,7 @@ fn print_glyphs() -> String {
 }
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashSet, panic::resume_unwind};
+    use std::collections::HashSet;
 
     use super::*;
 
