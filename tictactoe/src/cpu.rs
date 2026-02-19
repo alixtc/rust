@@ -149,7 +149,10 @@ mod tests {
         ]);
         let positions = grid.extract_winning_positions(&Marker::X);
         assert_eq!(positions.len(), 2);
-        assert_eq!(positions, [(1, 0), (1, 1)])
+        assert_eq!(
+            HashSet::from_iter(positions),
+            HashSet::from([(1, 1), (1, 0)])
+        )
     }
 
     #[test]
