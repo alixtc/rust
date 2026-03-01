@@ -12,6 +12,7 @@ pub enum Player {
 
 type Winner = Player;
 type ManualGrid = [[i32; 3]; 3];
+type Glyph = [String; 3];
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Grid {
@@ -33,12 +34,6 @@ impl Marker {
             Marker::O => -1,
             Marker::Null => 0,
         }
-    }
-}
-
-impl From<ManualGrid> for Grid {
-    fn from(array: ManualGrid) -> Grid {
-        from_array(array)
     }
 }
 
@@ -86,23 +81,56 @@ impl Grid {
                 acc
             })
     }
+
+    fn convert_to_glyphs(&self) -> Vec<Glyph> {
+        self.grid
+            .iter()
+            .sorted_by_key(|((x, y), _)| (x, y))
+            .map(|((x, y), marker)| match marker {
+                Marker::O => O_GLYPH.map(|x| x.to_owned()),
+                Marker::X => X_GLYPH.map(|x| x.to_owned()),
+                Marker::Null => [
+                    "       ".to_owned(),
+                    format!("   {}   ", x * 3 + (y + 1)),
+                    "       ".to_owned(),
+                ],
+            })
+            .collect()
+    }
+
+    fn render_grid_from_glyphs(&self) -> String {
+        self.convert_to_glyphs()
+            .chunks(3)
+            .map(|row| {
+                (0..3)
+                    .map(|glyph_subline| {
+                        row.iter()
+                            .map(move |glyph| glyph[glyph_subline].to_owned())
+                            .join(" | ")
+                    })
+                    .join("\n")
+            })
+            .join("\n========+=========+========\n")
+    }
 }
 
-pub fn from_array(array: ManualGrid) -> Grid {
-    let mut grid = HashMap::new();
-    for (ix_row, row) in array.iter().enumerate() {
-        for (ix_col, value) in row.iter().enumerate() {
-            grid.insert(
-                (ix_row as i32, ix_col as i32),
-                match value {
-                    1 => Marker::X,
-                    -1 => Marker::O,
-                    _ => Marker::Null,
-                },
-            );
+impl From<ManualGrid> for Grid {
+    fn from(array: ManualGrid) -> Grid {
+        let mut grid = HashMap::new();
+        for (ix_row, row) in array.iter().enumerate() {
+            for (ix_col, value) in row.iter().enumerate() {
+                grid.insert(
+                    (ix_row as i32, ix_col as i32),
+                    match value {
+                        1 => Marker::X,
+                        -1 => Marker::O,
+                        _ => Marker::Null,
+                    },
+                );
+            }
         }
+        Grid { grid, size: 3 }
     }
-    Grid { grid, size: 3 }
 }
 
 pub fn create_grid() -> Grid {
@@ -140,7 +168,7 @@ impl GridChecker for Grid {
         let anti_diagonal_sum = self
             .grid
             .iter()
-            .filter(|(row_col, _)|  [(2, 0), (1, 1), (0, 2)].contains(row_col))
+            .filter(|(row_col, _)| [(2, 0), (1, 1), (0, 2)].contains(row_col))
             .map(|(_, mk)| mk.to_int())
             .sum();
 
@@ -215,7 +243,7 @@ where
         .join(", ");
     let mut positions: Option<(i32, i32)> = None;
     while positions.is_none() {
-        println!("{}", grid.render());
+        println!("{}", grid.render_grid_from_glyphs());
         println!(
             "Please select one of the available positions:\n{}",
             list_of_choices
@@ -235,46 +263,25 @@ where
 
 #[rustfmt::skip]
 const X_GLYPH: [&str; 3] = [
-    " \\ // ", 
-    "   X   ", 
-    " // \\ "
+    r" \\ // ", 
+    r"   X   ", 
+    r" // \\ "
 ];
 
 #[rustfmt::skip]
 const O_GLYPH: [&str; 3] = [
-    " //‾\\ ",
-    "(     )", 
-    " \\_// ",
+    r" //‾\\ ",
+    r"(     )", 
+    r" \\_// ",
 ];
 
 #[rustfmt::skip]
 const EMPTY_GLYPH: [&str; 3] = [
-    "     ", 
-    "     ", 
-    "     "];
+    r"       ", 
+    r"       ", 
+    r"       ",
+];
 
-fn print_glyphs() -> String {
-    // Board as a 2D array of glyphs
-    let board = vec![
-        [X_GLYPH, O_GLYPH, EMPTY_GLYPH],
-        [O_GLYPH, X_GLYPH, O_GLYPH],
-        [EMPTY_GLYPH, EMPTY_GLYPH, X_GLYPH],
-    ];
-
-    // Print the board row by row, line by line
-    board
-        .iter()
-        .map(|row| {
-            (0..3)
-                .map(|idx| {
-                    row.iter()
-                        .map(move |glyph| glyph[idx].to_owned())
-                        .join(" | ")
-                })
-                .join("\n")
-        })
-        .join("\n======+======+======\n")
-}
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
@@ -291,7 +298,7 @@ mod tests {
     #[test]
     fn creates_an_empty_grid() {
         let empty_grid = create_grid();
-        assert_eq!(empty_grid, from_array([[0, 0, 0], [0, 0, 0], [0, 0, 0]]));
+        assert_eq!(empty_grid, Grid::from([[0, 0, 0], [0, 0, 0], [0, 0, 0]]));
     }
 
     #[test]
@@ -308,66 +315,65 @@ mod tests {
         let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Human);
 
-        let grid = from_array([[0, 0, 0], [-1, -1, -1], [0, 0, 0]]);
+        let grid = Grid::from([[0, 0, 0], [-1, -1, -1], [0, 0, 0]]);
         let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Cpu);
     }
 
     #[test]
     fn is_wining_grid_should_report_human_wins() {
-    let grid = Grid::from([[0, 0, 1], [0, 1, -1], [1, 0, -1]]);    
-    let result = grid.is_winning_grid().unwrap();
-    assert_eq!(result, Winner::Human);
+        let grid = Grid::from([[0, 0, 1], [0, 1, -1], [1, 0, -1]]);
+        let result = grid.is_winning_grid().unwrap();
+        assert_eq!(result, Winner::Human);
     }
-
 
     #[test]
     fn is_wining_grid_should_return_winner_on_columns() {
-        let grid = from_array([[1, 0, 0], [1, 0, 0], [1, 0, 0]]);
+        let grid = Grid::from([[1, 0, 0], [1, 0, 0], [1, 0, 0]]);
         let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Human);
 
-        let grid = from_array([[-1, 0, 0], [-1, 0, 0], [-1, 0, 0]]);
+        let grid = Grid::from([[-1, 0, 0], [-1, 0, 0], [-1, 0, 0]]);
         let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Cpu);
     }
 
     #[test]
     fn is_wining_grid_should_return_winner_on_diagonal() {
-        let grid = from_array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]);
+        let grid = Grid::from([[1, 0, 0], [0, 1, 0], [0, 0, 1]]);
         let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Human);
 
-        let grid = from_array([[-1, 0, 0], [0, -1, 0], [0, 0, -1]]);
+        let grid = Grid::from([[-1, 0, 0], [0, -1, 0], [0, 0, -1]]);
         let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Cpu);
     }
 
     #[test]
     fn is_wining_grid_should_return_winner_on_antidiagonal() {
-        let grid = from_array([[0, 0, 1], [0, 1, 0], [1, 0, 0]]);
+        let grid = Grid::from([[0, 0, 1], [0, 1, 0], [1, 0, 0]]);
         let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Human);
 
-        let grid = from_array([[0, 0, -1], [0, -1, 0], [-1, 0, 0]]);
+        let grid = Grid::from([[0, 0, -1], [0, -1, 0], [-1, 0, 0]]);
         let result = grid.is_winning_grid();
         assert_eq!(result.unwrap(), Winner::Cpu);
     }
 
     #[test]
     fn is_grid_full_should_detect_empty_slots() {
-        let grid = from_array([[0, 0, 1], [0, 0, 0], [1, 0, 0]]);
+        let grid = Grid::from([[0, 0, 1], [0, 0, 0], [1, 0, 0]]);
         assert!(!grid.is_grid_full());
     }
     #[test]
     fn is_grid_full_returns_true_with_no_empty_spots() {
-        let grid = from_array([[-1, -1, 1], [-1, -1, -1], [1, -1, -1]]);
+        let grid = Grid::from([[-1, -1, 1], [-1, -1, -1], [1, -1, -1]]);
         assert!(grid.is_grid_full());
     }
 
     #[test]
     fn extract_empty_positions_returns_an_array() {
-        let grid = from_array([[-1, 1, 1], [0, -1, 1], [1, -1, 0]]);
+        let grid = Grid::from([[-1, 1, 1], [0, -1, 1], [1, -1, 0]]);
         assert_eq!(
             HashSet::from_iter(grid.extract_empty_positions().values().cloned()),
             HashSet::from([(2, 2), (1, 0)])
@@ -376,7 +382,7 @@ mod tests {
 
     #[test]
     fn extract_empty_positions_should_be_in_row_col_order() {
-        let grid = from_array([[-1, 1, 1], [0, -1, 1], [1, -1, 0]]);
+        let grid = Grid::from([[-1, 1, 1], [0, -1, 1], [1, -1, 0]]);
         assert_eq!(
             grid.extract_empty_positions()
                 .keys()
@@ -389,13 +395,13 @@ mod tests {
 
     #[test]
     fn extract_empty_positions_returns_an_empty_array_on_full_grid() {
-        let grid = from_array([[-1, 1, 1], [-1, -1, 1], [1, -1, -1]]);
+        let grid = Grid::from([[-1, 1, 1], [-1, -1, 1], [1, -1, -1]]);
         assert_eq!(grid.extract_empty_positions(), HashMap::new());
     }
 
     #[test]
     fn render_should_have_column_separator() {
-        let grid = from_array([[-1, 1, 1], [1, -1, 1], [1, -1, -1]]);
+        let grid = Grid::from([[-1, 1, 1], [1, -1, 1], [1, -1, -1]]);
         assert!(grid.render().contains(" O | X | X "));
         assert!(grid.render().contains(" X | O | X "));
         assert!(grid.render().contains(" X | O | O "));
@@ -403,7 +409,7 @@ mod tests {
 
     #[test]
     fn render_should_display_empty_position_as_numbers() {
-        let grid = from_array([[0, 1, 1], [0, -1, 1], [0, -1, 0]]);
+        let grid = Grid::from([[0, 1, 1], [0, -1, 1], [0, -1, 0]]);
         assert!(grid.render().contains(" 1 | X | X "));
         assert!(grid.render().contains(" 4 | O | X "));
         assert!(grid.render().contains(" 7 | O | 9 "));
@@ -411,7 +417,7 @@ mod tests {
 
     #[test]
     fn render_should_have_rows_consecutively() {
-        let grid = from_array([[0, 1, 1], [0, -1, 1], [0, -1, 0]]);
+        let grid = Grid::from([[0, 1, 1], [0, -1, 1], [0, -1, 0]]);
 
         assert!(grid
             .render()
@@ -419,13 +425,13 @@ mod tests {
     }
     #[test]
     fn render_should_have_row_separator() {
-        let grid = from_array([[-1, 1, 1], [-1, -1, 1], [1, -1, -1]]);
+        let grid = Grid::from([[-1, 1, 1], [-1, -1, 1], [1, -1, -1]]);
         assert!(grid.render().contains("\n---+---+---\n"));
     }
 
     #[test]
     fn render_should_start_and_end_with_line_breaks() {
-        let grid = from_array([[-1, 1, 1], [-1, -1, 1], [1, -1, -1]]);
+        let grid = Grid::from([[-1, 1, 1], [-1, -1, 1], [1, -1, -1]]);
         let rendered = grid.render();
         let first_char = rendered.chars().next().unwrap();
         let last_char = rendered.chars().last().unwrap();
@@ -435,7 +441,7 @@ mod tests {
 
     #[test]
     fn make_user_turn_should_fill_one_empty_position_in_grid() {
-        let original_grid = from_array([[1, -1, 0], [1, -1, 0], [0, 0, 0]]);
+        let original_grid = Grid::from([[1, -1, 0], [1, -1, 0], [0, 0, 0]]);
 
         let get_mock_reader = || std::io::Cursor::new("3".as_bytes());
 
@@ -455,7 +461,7 @@ mod tests {
             std::io::Cursor::new(input_str.as_bytes())
         };
 
-        let grid = from_array([[0, -1, 0], [1, -1, 0], [0, 0, 0]]);
+        let grid = Grid::from([[0, -1, 0], [1, -1, 0], [0, 0, 0]]);
         let filled_grid = make_user_turn(&grid, get_mock_reader);
 
         let new_empty_positions = filled_grid
@@ -468,7 +474,31 @@ mod tests {
     }
 
     #[test]
-    fn test_glyphs() {
-        println!("{}", print_glyphs())
+    fn make_convert_to_glyphs_return_o_and_x_glyphs() {
+        let grid = Grid::from([[0, -1, 0], [1, -1, 0], [0, 0, 0]]);
+
+        let glyphs = grid.convert_to_glyphs();
+
+        assert_eq!(glyphs[1], O_GLYPH);
+        assert_eq!(glyphs[3], X_GLYPH);
+    }
+
+    #[test]
+    fn make_convert_to_glyphs_have_indexes_for_empty_glyphs() {
+        let grid = Grid::from([[0, -1, 0], [1, -1, 0], [0, 0, 0]]);
+
+        let glyphs = grid.convert_to_glyphs();
+
+        assert_eq!(glyphs[0], [r"       ", r"   1   ", r"       "]);
+        assert_eq!(glyphs[2], [r"       ", r"   3   ", r"       "]);
+        assert_eq!(glyphs[5], [r"       ", r"   6   ", r"       "]);
+        assert_eq!(glyphs[8], [r"       ", r"   9   ", r"       "]);
+    }
+
+    #[test]
+    fn make_show_grid() {
+        let grid = Grid::from([[0, -1, 0], [1, -1, 0], [0, 0, 0]]);
+
+        println!("{}", grid.render_grid_from_glyphs());
     }
 }

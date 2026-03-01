@@ -77,14 +77,14 @@ Please select difficulty between:
 
 #[cfg(test)]
 mod tests {
-    use super::super::grid::from_array;
+    use super::super::Grid;
     use super::*;
     use std::collections::HashSet;
 
     #[test]
     fn make_random_move_should_add_minus_one() {
         #[rustfmt::skip]
-        let grid = from_array([
+        let grid = Grid::from([
             [0, 0, 1],
             [0, -1, 0],
             [1, 0, 0],
@@ -103,7 +103,7 @@ mod tests {
     #[test]
     fn extract_winning_positions_returns_empty_array_with_no_winning_position() {
         #[rustfmt::skip]
-        let grid = from_array([
+        let grid = Grid::from([
             [1, -1, 1],
             [-1, 0, 1],
             [1, 1, -1],
@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn extract_winning_positions_returns_array_of_tuples() {
         #[rustfmt::skip]
-        let grid = from_array([
+        let grid = Grid::from([
             [1, 0, 1],
             [-1, 0, -1],
             [1, 1, -1],
@@ -127,7 +127,7 @@ mod tests {
     #[test]
     fn extract_winning_positions_work_on_diagonal_and_anti_diagonal() {
         #[rustfmt::skip]
-        let grid = from_array([
+        let grid = Grid::from([
             [-1, 1, -1],
             [1, -1, 1],
             [0, 0, 0],
@@ -142,7 +142,7 @@ mod tests {
     #[test]
     fn extract_winning_positions_allows_to_switch_player() {
         #[rustfmt::skip]
-        let grid = from_array([
+        let grid = Grid::from([
             [1, -1, 1],
             [0, 0, -1],
             [1, 1, -1],
@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn make_cpu_move_should_fill_an_empty_slot_on_low_difficulty() {
         #[rustfmt::skip]
-        let grid = from_array([
+        let grid = Grid::from([
             [1, 0, 0],
             [0, 0, 0],
             [0, 0, 0],
@@ -177,12 +177,12 @@ mod tests {
     #[test]
     fn make_cpu_move_should_fill_block_auto_win_when_medium_difficulty() {
         #[rustfmt::skip]
-        let grid = from_array([
+        let grid = Grid::from([
             [1, 0, 0],
             [1, -1, 0],
             [0, 0, 0],
         ]);
-        let expected = from_array([[1, 0, 0], [1, -1, 0], [-1, 0, 0]]);
+        let expected = Grid::from([[1, 0, 0], [1, -1, 0], [-1, 0, 0]]);
         let grid_after_action = make_cpu_move(&grid, Difficulty::Medium);
         assert_eq!(grid_after_action, expected);
     }
@@ -190,20 +190,20 @@ mod tests {
     #[test]
     fn make_cpu_move_should_fill_block_auto_win_when_high_difficulty() {
         #[rustfmt::skip]
-        let grid = from_array([
+        let grid = Grid::from([
             [1, 0, 0],
             [1, -1, 0],
             [0, 0, 0],
         ]);
-        let expected = from_array([[1, 0, 0], [1, -1, 0], [-1, 0, 0]]);
+        let expected = Grid::from([[1, 0, 0], [1, -1, 0], [-1, 0, 0]]);
         let grid_after_action = make_cpu_move(&grid, Difficulty::High);
         assert_eq!(grid_after_action, expected);
     }
 
     #[test]
     fn make_cpu_move_should_make_winning_move_on_high_difficulty() {
-        let grid = from_array([[1, -1, 0], [1, -1, 0], [0, 0, 0]]);
-        let expected = from_array([[1, -1, 0], [1, -1, 0], [0, -1, 0]]);
+        let grid = Grid::from([[1, -1, 0], [1, -1, 0], [0, 0, 0]]);
+        let expected = Grid::from([[1, -1, 0], [1, -1, 0], [0, -1, 0]]);
         let grid_after_action = make_cpu_move(&grid, Difficulty::High);
         assert_eq!(grid_after_action, expected);
     }
